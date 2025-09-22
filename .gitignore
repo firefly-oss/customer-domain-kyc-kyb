@@ -32,4 +32,3 @@ target/
 **/target/generated-sources/
 **/target/generated-test-sources/
 **/target/generated-resources/
-.refactor-backup-*/

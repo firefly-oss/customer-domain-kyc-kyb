@@ -1,4 +1,4 @@
-package com.firefly.domain.kyckyb.core.kyb.commands;
+package com.firefly.domain.kyc.kyb.core.kyb.commands;
 
 import lombok.Data;
 import lombok.AllArgsConstructor;

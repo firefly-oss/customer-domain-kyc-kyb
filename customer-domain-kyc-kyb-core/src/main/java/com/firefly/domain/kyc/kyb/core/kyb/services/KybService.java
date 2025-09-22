@@ -1,7 +1,7 @@
-package com.firefly.domain.kyckyb.core.kyb.services;
+package com.firefly.domain.kyc.kyb.core.kyb.services;
 
-import com.firefly.domain.kyckyb.core.common.SagaResult;
-import com.firefly.domain.kyckyb.core.kyb.commands.AttachEvidenceCommand;
+import com.firefly.domain.kyc.kyb.core.kyb.commands.AttachEvidenceCommand;
+import com.firefly.transactional.core.SagaResult;
 import reactor.core.publisher.Mono;
 
 import java.util.UUID;

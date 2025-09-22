@@ -21,12 +21,6 @@
         <module>customer-domain-kyc-kyb-infra</module>
     </modules>
 
-    <properties>
-        <common-platform-reference-master-data.version>
-            1.0.0-SNAPSHOT
-        </common-platform-reference-master-data.version>
-    </properties>
-
     <dependencyManagement>
         <dependencies>
             <!-- Internal modules -->

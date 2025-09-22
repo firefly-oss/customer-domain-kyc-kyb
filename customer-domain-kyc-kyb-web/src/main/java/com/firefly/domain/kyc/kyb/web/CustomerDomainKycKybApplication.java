@@ -1,4 +1,4 @@
-package com.firefly.domain.kyckyb.web;
+package com.firefly.domain.kyc.kyb.web;
 
 import com.firefly.transactional.annotations.EnableTransactionalEngine;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
@@ -12,7 +12,7 @@ import org.springframework.web.reactive.config.EnableWebFlux;
 
 @SpringBootApplication(
         scanBasePackages = {
-                "com.firefly.domain.kyckyb",
+                "com.firefly.domain.kyc.kyb",
                 "com.firefly.common.web"  // Scan common web library configurations
         }
 )

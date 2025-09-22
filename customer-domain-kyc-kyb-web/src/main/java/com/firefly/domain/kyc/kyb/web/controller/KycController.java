@@ -1,7 +1,7 @@
-package com.firefly.domain.kyckyb.web.controller;
+package com.firefly.domain.kyc.kyb.web.controller;
 
-import com.firefly.domain.kyckyb.core.kyc.commands.AttachEvidenceCommand;
-import com.firefly.domain.kyckyb.core.kyc.services.KycService;
+import com.firefly.domain.kyc.kyb.core.kyc.commands.AttachEvidenceCommand;
+import com.firefly.domain.kyc.kyb.core.kyc.services.KycService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;

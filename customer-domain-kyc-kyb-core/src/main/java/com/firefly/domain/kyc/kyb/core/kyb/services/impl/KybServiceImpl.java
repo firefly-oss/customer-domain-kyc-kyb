@@ -2,7 +2,7 @@ package com.firefly.domain.kyc.kyb.core.kyb.services.impl;
 
 import com.firefly.domain.kyc.kyb.core.kyb.commands.AttachEvidenceCommand;
 import com.firefly.domain.kyc.kyb.core.kyb.services.KybService;
-import com.firefly.transactional.core.SagaResult;
+import com.firefly.transactional.saga.core.SagaResult;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 

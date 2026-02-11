@@ -52,7 +52,7 @@ web --> interfaces --> core --> infra
 | [FireflyFramework Domain](https://github.com/fireflyframework/) | Domain abstractions |
 | [FireflyFramework Validators](https://github.com/fireflyframework/) | Validation utilities |
 | [FireflyFramework Web](https://github.com/fireflyframework/) | Common web configurations |
-| common-platform-customer-mgmt-sdk | SDK client for the Customer Management core platform |
+| core-common-customer-mgmt-sdk | SDK client for the Customer Management core platform |
 | SpringDoc OpenAPI (WebFlux UI) | API documentation |
 | Micrometer + Prometheus | Metrics and monitoring |
 | MapStruct | Object mapping |
@@ -67,7 +67,7 @@ web --> interfaces --> core --> infra
 - **Java 25** (or later)
 - **Apache Maven 3.9+**
 - Access to the FireflyFramework Maven repository for `org.fireflyframework` dependencies
-- Access to the `common-platform-customer-mgmt-sdk` artifact
+- Access to the `core-common-customer-mgmt-sdk` artifact
 
 ### Environment Variables
 

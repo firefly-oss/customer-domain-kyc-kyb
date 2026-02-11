@@ -11,15 +11,15 @@
     </parent>
 
     <groupId>com.firefly</groupId>
-    <artifactId>customer-domain-kyc-kyb</artifactId>
+    <artifactId>domain-customer-kyc-kyb</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <modules>
-        <module>customer-domain-kyc-kyb-core</module>
-        <module>customer-domain-kyc-kyb-interfaces</module>
-        <module>customer-domain-kyc-kyb-web</module>
-        <module>customer-domain-kyc-kyb-sdk</module>
-        <module>customer-domain-kyc-kyb-infra</module>
+        <module>domain-customer-kyc-kyb-core</module>
+        <module>domain-customer-kyc-kyb-interfaces</module>
+        <module>domain-customer-kyc-kyb-web</module>
+        <module>domain-customer-kyc-kyb-sdk</module>
+        <module>domain-customer-kyc-kyb-infra</module>
     </modules>
 
     <properties>
@@ -42,27 +42,27 @@
             <!-- Internal modules -->
             <dependency>
                 <groupId>com.firefly</groupId>
-                <artifactId>customer-domain-kyc-kyb-core</artifactId>
+                <artifactId>domain-customer-kyc-kyb-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.firefly</groupId>
-                <artifactId>customer-domain-kyc-kyb-interfaces</artifactId>
+                <artifactId>domain-customer-kyc-kyb-interfaces</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.firefly</groupId>
-                <artifactId>customer-domain-kyc-kyb-web</artifactId>
+                <artifactId>domain-customer-kyc-kyb-web</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.firefly</groupId>
-                <artifactId>customer-domain-kyc-kyb-sdk</artifactId>
+                <artifactId>domain-customer-kyc-kyb-sdk</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.firefly</groupId>
-                <artifactId>customer-domain-kyc-kyb-infra</artifactId>
+                <artifactId>domain-customer-kyc-kyb-infra</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

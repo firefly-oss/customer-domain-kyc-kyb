@@ -1,14 +1,14 @@
-# customer-domain-kyc-kyb
+# domain-customer-kyc-kyb
 
 Domain layer microservice for Know Your Customer (KYC) and Know Your Business (KYB) verification processes. This service orchestrates identity verification workflows for both individual customers and business entities within the Firefly platform.
 
-Repository: [https://github.com/firefly-oss/customer-domain-kyc-kyb](https://github.com/firefly-oss/customer-domain-kyc-kyb)
+Repository: [https://github.com/firefly-oss/domain-customer-kyc-kyb](https://github.com/firefly-oss/domain-customer-kyc-kyb)
 
 ---
 
 ## Overview
 
-`customer-domain-kyc-kyb` provides a reactive REST API for managing compliance-driven verification lifecycles. It supports the full case-based workflow: opening a case, attaching documentary evidence, marking dossiers complete, recording PEP/adverse-media findings (KYC), verifying or rejecting cases, and handling expiration and renewal.
+`domain-customer-kyc-kyb` provides a reactive REST API for managing compliance-driven verification lifecycles. It supports the full case-based workflow: opening a case, attaching documentary evidence, marking dossiers complete, recording PEP/adverse-media findings (KYC), verifying or rejecting cases, and handling expiration and renewal.
 
 ### Key Features
 
@@ -27,11 +27,11 @@ Repository: [https://github.com/firefly-oss/customer-domain-kyc-kyb](https://git
 
 | Module | Purpose |
 |--------|---------|
-| `customer-domain-kyc-kyb-core` | Business logic: service interfaces/implementations, commands, and domain models for KYC and KYB. |
-| `customer-domain-kyc-kyb-interfaces` | Interface adapters: bridges between web layer and core domain; depends on core. |
-| `customer-domain-kyc-kyb-infra` | Infrastructure: configuration properties, validators, external client setup. |
-| `customer-domain-kyc-kyb-web` | Deployable Spring Boot application: REST controllers, OpenAPI config, actuator endpoints. |
-| `customer-domain-kyc-kyb-sdk` | Client SDK placeholder for consumers of this service's API. |
+| `domain-customer-kyc-kyb-core` | Business logic: service interfaces/implementations, commands, and domain models for KYC and KYB. |
+| `domain-customer-kyc-kyb-interfaces` | Interface adapters: bridges between web layer and core domain; depends on core. |
+| `domain-customer-kyc-kyb-infra` | Infrastructure: configuration properties, validators, external client setup. |
+| `domain-customer-kyc-kyb-web` | Deployable Spring Boot application: REST controllers, OpenAPI config, actuator endpoints. |
+| `domain-customer-kyc-kyb-sdk` | Client SDK placeholder for consumers of this service's API. |
 
 ### Dependency Flow
 
@@ -92,10 +92,10 @@ mvn clean install -DskipTests
 
 ```bash
 # Run via Spring Boot Maven plugin
-mvn -pl customer-domain-kyc-kyb-web spring-boot:run
+mvn -pl domain-customer-kyc-kyb-web spring-boot:run
 
 # Or run the packaged JAR
-java -jar customer-domain-kyc-kyb-web/target/customer-domain-kyc-kyb.jar
+java -jar domain-customer-kyc-kyb-web/target/domain-customer-kyc-kyb.jar
 ```
 
 ---

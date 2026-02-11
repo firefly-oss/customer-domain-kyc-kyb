@@ -5,11 +5,11 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.firefly</groupId>
-        <artifactId>customer-domain-kyc-kyb</artifactId>
+        <artifactId>domain-customer-kyc-kyb</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>customer-domain-kyc-kyb-core</artifactId>
+    <artifactId>domain-customer-kyc-kyb-core</artifactId>
 
     <properties>
         <maven.compiler.source>25</maven.compiler.source>
@@ -21,7 +21,7 @@
         <!-- Internal modules -->
         <dependency>
             <groupId>com.firefly</groupId>
-            <artifactId>customer-domain-kyc-kyb-infra</artifactId>
+            <artifactId>domain-customer-kyc-kyb-infra</artifactId>
         </dependency>
 
         <!-- SDKs -->

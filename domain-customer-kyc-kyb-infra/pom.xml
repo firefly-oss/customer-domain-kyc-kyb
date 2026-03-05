@@ -69,6 +69,10 @@
             <artifactId>core-common-customer-mgmt-sdk</artifactId>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>com.firefly</groupId>
+            <artifactId>core-common-kycb-mgmt-sdk</artifactId>
+        </dependency>
 
         <!-- Test Dependencies -->
         <dependency>

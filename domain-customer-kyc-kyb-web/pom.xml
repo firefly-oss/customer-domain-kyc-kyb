@@ -26,6 +26,10 @@
             <groupId>com.firefly</groupId>
             <artifactId>domain-customer-kyc-kyb-interfaces</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.firefly</groupId>
+            <artifactId>domain-customer-kyc-kyb-core</artifactId>
+        </dependency>
 
         <!-- Common Libraries -->
         <dependency>
@@ -137,6 +141,9 @@
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
+                    <testExcludes>
+                        <testExclude>**/openapi/OpenApiGenApplication.java</testExclude>
+                    </testExcludes>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>

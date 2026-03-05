@@ -29,6 +29,10 @@
             <groupId>com.firefly</groupId>
             <artifactId>core-common-customer-mgmt-sdk</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.firefly</groupId>
+            <artifactId>core-common-kycb-mgmt-sdk</artifactId>
+        </dependency>
 
         <!-- Common Libraries -->
         <dependency>

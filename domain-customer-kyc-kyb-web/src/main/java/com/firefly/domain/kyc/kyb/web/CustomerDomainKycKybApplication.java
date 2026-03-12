@@ -16,7 +16,7 @@ import org.springframework.web.reactive.config.EnableWebFlux;
         }
 )
 @EnableWebFlux
-@ConfigurationPropertiesScan
+@ConfigurationPropertiesScan(basePackages = "com.firefly.domain.kyc.kyb")
 @OpenAPIDefinition(
         info = @Info(
                 title = "${spring.application.name}",

@@ -26,6 +26,10 @@
             <groupId>com.firefly</groupId>
             <artifactId>domain-customer-kyc-kyb-interfaces</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.firefly</groupId>
+            <artifactId>domain-customer-kyc-kyb-core</artifactId>
+        </dependency>
 
         <!-- Common Libraries -->
         <dependency>

@@ -1,18 +1,23 @@
 package com.firefly.domain.kyc.kyb.core.kyb.services;
 
 import com.firefly.domain.kyc.kyb.core.kyb.commands.AttachEvidenceCommand;
+import com.firefly.domain.kyc.kyb.core.kyb.workflows.KybWorkflowInput;
 import org.fireflyframework.orchestration.saga.engine.SagaResult;
 import reactor.core.publisher.Mono;
 
 import java.util.UUID;
 
 public interface KybService {
-    
+
     /**
-     * Opens a new KYB process for an organization.
-     * @return Mono containing the result of starting the KYB process
+     * Starts the full KYB workflow saga for an organization.
+     * Creates the compliance case, uploads corporate documents, registers UBOs,
+     * requests external verification, and evaluates the final result.
+     *
+     * @param input all data required by the 5-step KYB saga
+     * @return Mono containing the saga result with per-step outcomes
      */
-    Mono<SagaResult> startKyb();
+    Mono<SagaResult> startKyb(KybWorkflowInput input);
     
     /**
      * Attaches statutes, registries, shareholder records, and POA documents to a KYB case.

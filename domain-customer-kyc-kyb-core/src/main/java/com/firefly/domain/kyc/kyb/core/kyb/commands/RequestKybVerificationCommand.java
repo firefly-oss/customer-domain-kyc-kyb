@@ -1,20 +1,27 @@
 package com.firefly.domain.kyc.kyb.core.kyb.commands;
 
-import com.firefly.domain.kyc.kyb.infra.KybVerificationResult;
-import lombok.AllArgsConstructor;
+import jakarta.validation.constraints.NotNull;
+import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.fireflyframework.cqrs.command.Command;
+
+import com.firefly.core.kycb.sdk.model.KybVerificationDTO;
 
 import java.util.UUID;
 
 /**
- * Command to request KYB verification from the external provider.
+ * Triggers external KYB verification via {@code KybVerificationPort},
+ * persists the result as a {@code KybVerificationDTO} in the core service,
+ * and returns the full verification DTO so the saga step can inspect the
+ * outcome and store verification status in context.
  */
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
-public class RequestKybVerificationCommand implements Command<KybVerificationResult> {
+@Builder
+public class RequestKybVerificationCommand implements Command<KybVerificationDTO> {
 
-    private UUID caseId;
+    @NotNull(message = "Case ID is required")
+    private final UUID caseId;
+
+    @NotNull(message = "Party ID is required")
+    private final UUID partyId;
 }

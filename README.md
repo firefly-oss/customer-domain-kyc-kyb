@@ -1,210 +1,329 @@
 # domain-customer-kyc-kyb
 
-Domain layer microservice for Know Your Customer (KYC) and Know Your Business (KYB) verification processes. This service orchestrates identity verification workflows for both individual customers and business entities within the Firefly platform.
+> Reactive Spring Boot microservice that manages Know Your Customer (KYC) and Know Your Business (KYB) compliance workflows for the Firefly platform.
 
-Repository: [https://github.com/firefly-oss/domain-customer-kyc-kyb](https://github.com/firefly-oss/domain-customer-kyc-kyb)
+## Table of Contents
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Module Structure](#module-structure)
+- [API Endpoints](#api-endpoints)
+- [Domain Logic](#domain-logic)
+- [Dependencies](#dependencies)
+- [Configuration](#configuration)
+- [Running Locally](#running-locally)
+- [Testing](#testing)
 
 ---
 
 ## Overview
 
-`domain-customer-kyc-kyb` provides a reactive REST API for managing compliance-driven verification lifecycles. It supports the full case-based workflow: opening a case, attaching documentary evidence, marking dossiers complete, recording PEP/adverse-media findings (KYC), verifying or rejecting cases, and handling expiration and renewal.
+`domain-customer-kyc-kyb` is the domain service responsible for all compliance due-diligence processes applied to Firefly customers. It handles two distinct compliance tracks: **KYC** (Know Your Customer) for natural persons and **KYB** (Know Your Business) for legal entities. The service exposes a reactive REST API and internally routes commands and queries through the Firefly CQRS framework (`fireflyframework-cqrs`).
 
-### Key Features
+The KYB track is the primary, fully implemented flow. It orchestrates a five-step distributed saga — `createKybCase → (submitCorporateDocuments ‖ registerUbos) → requestVerification → evaluateResult` — coordinating calls to the downstream `core-common-kycb-mgmt` service via a generated SDK. Every completed saga step publishes a domain event to Kafka, enabling downstream consumers (such as `exp-onboarding` or `core-lending`) to react to compliance outcomes without coupling directly to this service.
 
-- **KYC case management** -- open cases, attach identity/POA/selfie documents, record PEP and adverse media findings, verify or reject, expire, and renew verifications.
-- **KYB case management** -- start business verification processes, attach statutes/registries/shareholder records, validate UBOs, verify or reject entities, expire, and renew.
-- **Saga-orchestrated transactions** -- every operation returns a `SagaResult` via the FireflyFramework Transactional Saga Engine, ensuring distributed data consistency with compensating actions.
-- **Reactive, non-blocking architecture** -- built on Spring WebFlux and Project Reactor for high-throughput, low-latency processing.
-- **OpenAPI documentation** -- integrated Swagger UI via SpringDoc for interactive API exploration.
-- **Observability** -- Prometheus metrics via Micrometer and Spring Boot Actuator health endpoints.
+The KYC track exposes a full lifecycle API (open, attach evidence, mark docs complete, PEP/adverse-media recording, verify, fail, expire, renew) but its service implementation is a placeholder pending full development. Both tracks share a single Spring Boot application, a common infrastructure layer, and the same `KycbClientFactory` for connecting to the core platform.
 
 ---
 
 ## Architecture
 
-### Module Structure
-
-| Module | Purpose |
-|--------|---------|
-| `domain-customer-kyc-kyb-core` | Business logic: service interfaces/implementations, commands, and domain models for KYC and KYB. |
-| `domain-customer-kyc-kyb-interfaces` | Interface adapters: bridges between web layer and core domain; depends on core. |
-| `domain-customer-kyc-kyb-infra` | Infrastructure: configuration properties, validators, external client setup. |
-| `domain-customer-kyc-kyb-web` | Deployable Spring Boot application: REST controllers, OpenAPI config, actuator endpoints. |
-| `domain-customer-kyc-kyb-sdk` | Client SDK placeholder for consumers of this service's API. |
-
-### Dependency Flow
+The service follows a **CQRS + Saga** pattern layered across four runtime modules, with a fifth SDK module published for consumers.
 
 ```
-web --> interfaces --> core --> infra
+HTTP clients
+     │
+     ▼
+┌─────────────────────────────┐
+│  -web  (Controllers)        │  KybController, KycController
+│  Spring WebFlux / Reactor   │
+└────────────┬────────────────┘
+             │  CommandBus / QueryBus
+             ▼
+┌─────────────────────────────┐
+│  -core  (Handlers & Saga)   │  Command handlers, Query handlers,
+│  fireflyframework-cqrs      │  KybWorkflowSaga (orchestration)
+└────────────┬────────────────┘
+             │  SDK client beans
+             ▼
+┌─────────────────────────────┐
+│  -infra  (Adapters)         │  KycbClientFactory, KybVerificationPort,
+│  core-common-kycb-mgmt SDK  │  StubKybVerificationAdapter
+└────────────┬────────────────┘
+             │  HTTP (REST)
+             ▼
+   core-common-kycb-mgmt          (downstream platform service, port 8092)
+
+             │
+             ▼
+          Kafka                   (topic: domain-layer)
 ```
 
-### Technology Stack
-
-| Technology | Purpose |
-|------------|---------|
-| Java 25 | Language runtime |
-| Spring Boot (WebFlux) | Reactive web framework |
-| Project Reactor | Reactive streams |
-| [FireflyFramework BOM 26.01.01](https://github.com/fireflyframework/) | Parent POM, dependency management, shared libraries |
-| [FireflyFramework Transactional Saga Engine](https://github.com/fireflyframework/) | Distributed saga orchestration (`SagaResult`, `@EnableTransactionalEngine`) |
-| [FireflyFramework Utils](https://github.com/fireflyframework/) | Common utilities |
-| [FireflyFramework Domain](https://github.com/fireflyframework/) | Domain abstractions |
-| [FireflyFramework Validators](https://github.com/fireflyframework/) | Validation utilities |
-| [FireflyFramework Web](https://github.com/fireflyframework/) | Common web configurations |
-| core-common-customer-mgmt-sdk | SDK client for the Customer Management core platform |
-| SpringDoc OpenAPI (WebFlux UI) | API documentation |
-| Micrometer + Prometheus | Metrics and monitoring |
-| MapStruct | Object mapping |
-| Lombok | Boilerplate reduction |
+The `KybWorkflowSaga` is declared with `@Saga(name = "kyb-workflow", layerConcurrency = 0)` and uses the Firefly orchestration engine to execute steps as a directed acyclic graph (DAG). Steps 2 and 3 (`submitCorporateDocuments` and `registerUbos`) run in parallel within the same topology layer. Step 4 (`requestVerification`) is the join point that waits for both to complete before proceeding to the terminal step 5 (`evaluateResult`).
 
 ---
 
-## Setup
+## Module Structure
 
-### Prerequisites
-
-- **Java 25** (or later)
-- **Apache Maven 3.9+**
-- Access to the FireflyFramework Maven repository for `org.fireflyframework` dependencies
-- Access to the `core-common-customer-mgmt-sdk` artifact
-
-### Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SERVER_ADDRESS` | `localhost` | Address the server binds to |
-| `SERVER_PORT` | `8080` | HTTP port |
-
-> **Note:** This project currently does not include an `application.yaml` resource file. Configuration is expected to be supplied externally or via the FireflyFramework parent defaults. See the `CustomerDomainKycKybApplication` class for OpenAPI metadata (server URLs: `http://core.getfirefly.io/customer-domain-kyckyb` for dev, `/` for local).
-
-### Build
-
-```bash
-# Full build
-mvn clean install
-
-# Skip tests
-mvn clean install -DskipTests
-```
-
-### Run
-
-```bash
-# Run via Spring Boot Maven plugin
-mvn -pl domain-customer-kyc-kyb-web spring-boot:run
-
-# Or run the packaged JAR
-java -jar domain-customer-kyc-kyb-web/target/domain-customer-kyc-kyb.jar
-```
+| Module | Purpose |
+|--------|---------|
+| `domain-customer-kyc-kyb-interfaces` | Public request/response DTOs shared between the web layer and any consumer of the service's own SDK: `CreateKybCaseRequest`, `SubmitCorporateDocumentsRequest`, `RegisterUbosRequest`, `KybCaseResponse`, `KybResultResponse`. |
+| `domain-customer-kyc-kyb-core` | All domain logic: CQRS command/query objects, command handlers, query handlers, the `KybWorkflowSaga`, `KybWorkflowConstants`, `KybWorkflowInput`, and the `KycService` interface with its stub implementation. |
+| `domain-customer-kyc-kyb-infra` | Infrastructure adapters: `KycbClientFactory` (creates reactive API client beans for `core-common-kycb-mgmt`), `KycbClientConfigurationProperties`, the `KybVerificationPort` interface, `StubKybVerificationAdapter`, and `KybVerificationResult`. |
+| `domain-customer-kyc-kyb-web` | Spring Boot application entry point (`CustomerDomainKycKybApplication`), `KybController`, `KycController`, and `application.yaml`. |
+| `domain-customer-kyc-kyb-sdk` | OpenAPI-generated Java client SDK published for other services that need to call this service. Includes `KybApi`, `KycApi`, generated model classes, and a reactive `ApiClient`. |
 
 ---
 
 ## API Endpoints
 
-All endpoints return reactive `Mono<ResponseEntity<Object>>` responses. The base API path prefix is versioned.
+### KYB — `/api/v1/kyb`
 
-### KYC Endpoints (`/api/v1/kyc`)
+| Method | Path | Description | Success Status |
+|--------|------|-------------|----------------|
+| `POST` | `/api/v1/kyb/cases` | Create a new KYB compliance case for a legal entity. Body: `CreateKybCaseRequest` (`partyId`, `businessName`, `registrationNumber`, `tenantId`). Returns `KybCaseResponse` with the generated `caseId`. | `201 Created` |
+| `GET` | `/api/v1/kyb/cases/{caseId}` | Retrieve the current state of a KYB compliance case. Returns full `KybCaseResponse` (status, priority, reference, due date, etc.). Result is cached for 5 minutes. | `200 OK` |
+| `POST` | `/api/v1/kyb/cases/{caseId}/corporate-documents` | Upload a batch of corporate documents to a KYB case. Body: `SubmitCorporateDocumentsRequest` (`partyId`, `documents[]`). Returns `SubmissionResult` with the list of created document IDs. | `200 OK` |
+| `POST` | `/api/v1/kyb/cases/{caseId}/ubos` | Register Ultimate Beneficial Owners for a KYB case. Body: `RegisterUbosRequest` (`partyId`, `ubos[]`). Returns `SubmissionResult` with the list of created UBO IDs. | `200 OK` |
+| `POST` | `/api/v1/kyb/cases/{caseId}/verify` | Trigger external KYB verification. Query param: `partyId`. Requires all documents and UBOs to be submitted first. Returns `KybResultResponse`. | `200 OK` |
+| `GET` | `/api/v1/kyb/cases/{caseId}/result` | Retrieve the final KYB verification result. Query params: `partyId`, `verificationId`. Returns `KybResultResponse`. Result is cached for 10 minutes. | `200 OK` |
 
-| Method | Path | Summary | Description |
-|--------|------|---------|-------------|
-| `POST` | `/api/v1/kyc/cases` | Start KYC | Open a KYC case with required due diligence level |
-| `POST` | `/api/v1/kyc/cases/{caseId}/evidence` | Attach Evidence | Attach identity/POA/selfie documents (fingerprint ref) |
-| `POST` | `/api/v1/kyc/cases/{caseId}/docs-complete` | Mark Documents Complete | Mark dossier complete for review |
-| `POST` | `/api/v1/kyc/cases/{caseId}/pep-adverse-media` | Record PEP/Adverse Media | Record PEP/adverse media status affecting decision |
-| `POST` | `/api/v1/kyc/cases/{caseId}/verify` | Verify KYC | Approve KYC at level and set expiration |
-| `POST` | `/api/v1/kyc/cases/{caseId}/fail` | Fail KYC | Close as rejected (fraud/inconsistency) |
-| `POST` | `/api/v1/kyc/cases/{caseId}/expire` | Expire KYC | Mark verification expired by time |
-| `POST` | `/api/v1/kyc/cases/{caseId}/renew` | Renew KYC | Renew verification with new level/expiry |
+### KYC — `/api/v1/kyc`
 
-### KYB Endpoints (`/api/v1/kyb`)
+| Method | Path | Description | Success Status |
+|--------|------|-------------|----------------|
+| `POST` | `/api/v1/kyc/cases` | Open a new KYC case with the required due diligence level. | `200 OK` |
+| `POST` | `/api/v1/kyc/cases/{caseId}/evidence` | Attach identity, proof-of-address, or selfie documents (fingerprint reference) to a KYC case. Body: `AttachEvidenceCommand`. | `200 OK` |
+| `POST` | `/api/v1/kyc/cases/{caseId}/docs-complete` | Mark the document dossier as complete and ready for review. | `200 OK` |
+| `POST` | `/api/v1/kyc/cases/{caseId}/pep-adverse-media` | Record PEP (Politically Exposed Person) or adverse media status that will affect the compliance decision. | `200 OK` |
+| `POST` | `/api/v1/kyc/cases/{caseId}/verify` | Approve KYC at the required level and set the verification expiry date. | `200 OK` |
+| `POST` | `/api/v1/kyc/cases/{caseId}/fail` | Close the KYC case as rejected due to fraud or document inconsistency. | `200 OK` |
+| `POST` | `/api/v1/kyc/cases/{caseId}/expire` | Mark a previously verified KYC as expired by time. | `200 OK` |
+| `POST` | `/api/v1/kyc/cases/{caseId}/renew` | Renew a KYC verification with a new level and expiry. | `200 OK` |
 
-| Method | Path | Summary | Description |
-|--------|------|---------|-------------|
-| `POST` | `/api/v1/kyb/cases` | Start KYB | Open a KYB process for an organization |
-| `POST` | `/api/v1/kyb/cases/{caseId}/evidence` | Attach Evidence | Attach statutes, registries, shareholder records, POA |
-| `POST` | `/api/v1/kyb/cases/{caseId}/docs-complete` | Mark Documents Complete | Mark KYB dossier complete |
-| `POST` | `/api/v1/kyb/cases/{caseId}/verify` | Verify KYB | Verify entity (requires UBOs validated) and set expiry |
-| `POST` | `/api/v1/kyb/cases/{caseId}/fail` | Fail KYB | Reject KYB (opaque structure/sanctions/insufficient docs) |
-| `POST` | `/api/v1/kyb/cases/{caseId}/expire` | Expire KYB | Mark KYB expired by time |
-| `POST` | `/api/v1/kyb/cases/{caseId}/renew` | Renew KYB | Renew KYB level/expiry |
-
-### Evidence Command Payload
-
-Both KYC and KYB evidence endpoints accept the same structure:
-
-```json
-{
-  "caseId": "uuid",
-  "documentType": "string",
-  "documentName": "string",
-  "documentContent": "string",
-  "mimeType": "string",
-  "documentSize": 0,
-  "fingerprint": "string",
-  "description": "string"
-}
-```
+> **Note:** The KYC endpoints are fully defined and routed but the underlying `KycServiceImpl` currently returns `Mono.empty()` for all operations. The KYC domain logic is under active development.
 
 ---
 
-## Development Guidelines
+## Domain Logic
 
-### Project Conventions
+### KYB Workflow Saga (`KybWorkflowSaga`)
 
-- **Reactive-only**: all service methods return `Mono` or `Flux`. Do not use blocking calls.
-- **Saga pattern**: business operations use the FireflyFramework `SagaEngine` with `SagaResult` return types and compensating actions.
-- **Command pattern**: each operation is modeled as a command object (e.g., `AttachEvidenceCommand`).
-- **Layer separation**: controllers delegate to service interfaces; implementations live in `core`.
-- **Lombok + MapStruct**: use `@Data`, `@RequiredArgsConstructor` for models; MapStruct for DTO mapping.
+The saga (`kyb-workflow`) orchestrates the end-to-end KYB compliance process as a DAG with `layerConcurrency = 0`, meaning the orchestration engine controls all concurrency within each topology layer.
 
-### Package Structure
+**DAG topology:**
 
 ```
-com.firefly.domain.kyc.kyb
-  +-- core
-  |     +-- kyc
-  |     |     +-- commands/          # KYC command objects
-  |     |     +-- services/          # KYC service interface
-  |     |     +-- services/impl/     # KYC service implementation
-  |     +-- kyb
-  |           +-- commands/          # KYB command objects
-  |           +-- services/          # KYB service interface
-  |           +-- services/impl/     # KYB service implementation
-  +-- web
-        +-- controller/              # REST controllers (KycController, KybController)
-        +-- CustomerDomainKycKybApplication.java
+[Step 1: createKybCase]
+      ├── [Step 2: submitCorporateDocuments]  ─┐
+      └── [Step 3: registerUbos]              ─┴── [Step 4: requestVerification] ── [Step 5: evaluateResult]
 ```
 
-### Running Tests
+Steps 2 and 3 run in parallel. Step 4 is the join point that waits for both. Step 5 is terminal and has no compensation.
+
+**Step details:**
+
+| Step ID | Method | Depends On | Compensation | Timeout | Retries | Event Published |
+|---------|--------|------------|-------------|---------|---------|-----------------|
+| `createKybCase` | `createKybCase(KybWorkflowInput, ExecutionContext)` | — (root) | `cancelCase` | 30 s | 2 | `kyb.case.created` |
+| `submitCorporateDocuments` | `submitCorporateDocuments(ExecutionContext)` | `createKybCase` | `deleteDocuments` | 60 s | 2 | `kyb.documents.submitted` |
+| `registerUbos` | `registerUbos(ExecutionContext)` | `createKybCase` | `removeUbos` | 60 s | 2 | `kyb.ubos.registered` |
+| `requestVerification` | `requestVerification(ExecutionContext)` | `submitCorporateDocuments`, `registerUbos` | `cancelVerification` | 90 s | 1 | `kyb.verification.requested` |
+| `evaluateResult` | `evaluateResult(ExecutionContext)` | `requestVerification` | — (terminal) | 30 s | — | `kyb.verification.completed` |
+
+**`ExecutionContext` key contract** (data written and read across steps):
+
+| Key | Written by | Type | Description |
+|-----|-----------|------|-------------|
+| `caseId` | Step 1 | `UUID` | Created compliance case ID |
+| `partyId` | Step 1 | `UUID` | Owning party ID |
+| `documents` | Step 1 | `List<DocumentData>` | Corporate documents to upload |
+| `ubos` | Step 1 | `List<UboData>` | UBO records to register |
+| `documentIds` | Step 2 | `List<UUID>` | IDs of created corporate documents |
+| `uboIds` | Step 3 | `List<UUID>` | IDs of created UBO records |
+| `verificationId` | Step 4 | `UUID` | Created KYB verification ID |
+| `verificationStatus` | Step 4 | `String` | `VERIFIED` or `REJECTED` |
+
+**Compensation order (strict sequential, reverse):**
+
+```
+cancelVerification → removeUbos / deleteDocuments → cancelCase
+```
+
+**Step 5 outcome logic:** `evaluateResult` reads `verificationStatus` from context, maps `VERIFIED` to case status `VERIFIED` and any other value to `REJECTED`, then calls `ComplianceCasesApi.updateComplianceCase` to persist the final status before emitting the `kyb.verification.completed` event.
+
+---
+
+### KYB Command Handlers
+
+**`CreateKybCaseHandler`**
+
+Handles `CreateKybCaseCommand`. Calls `ComplianceCasesApi.createComplianceCase` to open a compliance case of type `KYB` with status `OPEN`, priority `MEDIUM`, a 30-day due date, the business name as the case summary, and the registration number as the case reference. Returns the generated `complianceCaseId`. Configured with a 30 s timeout, 2 retries, metrics, and tracing.
+
+**`SubmitCorporateDocumentsHandler`**
+
+Handles `SubmitCorporateDocumentsCommand`. Concurrently uploads each `DocumentData` item via `CorporateDocumentsApi.addCorporateDocument` using `Flux.flatMap` and collects the resulting IDs into a `SubmissionResult`. Configured with a 60 s timeout, 2 retries, metrics, and tracing.
+
+**`RegisterUbosHandler`**
+
+Handles `RegisterUbosCommand`. Concurrently registers each `UboData` item via `UboManagementApi.addUbo` using `Flux.flatMap` and collects the resulting IDs into a `SubmissionResult`. Configured with a 60 s timeout, 2 retries, metrics, and tracing.
+
+**`RequestKybVerificationHandler`**
+
+Handles `RequestKybVerificationCommand`. Delegates to `KybVerificationPort.verify(caseId)` to obtain an external verification result, then persists a `KybVerificationDTO` via `KybVerificationApi.createKybVerification`. Sets the next review date to one year from today and maps the provider outcome to `VERIFIED` or `REJECTED`. Returns the full `KybVerificationDTO` so the saga step can store the verification status and ID in context. Configured with a 60 s timeout, 1 retry, metrics, and tracing.
+
+---
+
+### KYB Query Handlers
+
+**`GetKybCaseHandler`**
+
+Handles `GetKybCaseQuery`. Calls `ComplianceCasesApi.getComplianceCase(caseId)` and returns a `ComplianceCaseDTO`. Results are cached for 5 minutes (`cacheTtl = 300`).
+
+**`GetKybResultHandler`**
+
+Handles `GetKybResultQuery`. Calls `KybVerificationApi.getKybVerification(partyId, verificationId)` and returns a `KybVerificationDTO`. Results are cached for 10 minutes (`cacheTtl = 600`) because verification outcomes are immutable once the `evaluateResult` step completes.
+
+---
+
+### KYB Verification Port
+
+`KybVerificationPort` is a hexagonal-architecture port interface for integrating with external KYB verification providers such as Sumsub, Onfido, or Dow Jones. The only currently active implementation is `StubKybVerificationAdapter`, which simulates a 200 ms network delay and always returns `VERIFIED`. It activates when the property `integration.kyb-verification.provider` is set to `stub` or is absent entirely. A real provider implementation must be registered as a Spring `@Component` implementing the same port interface, with the stub suppressed by setting the property to the provider name.
+
+---
+
+## Dependencies
+
+### Upstream — services this microservice consumes
+
+| Service | Client | APIs Used |
+|---------|--------|-----------|
+| `core-common-kycb-mgmt` | `KycbClientFactory` wrapping the `core-common-kycb-sdk` `ApiClient` | `ComplianceCasesApi`, `CorporateDocumentsApi`, `UboManagementApi`, `KybVerificationApi`, `KycVerificationApi`, `KycVerificationDocumentsApi`, `VerificationDocumentsApi` |
+| External KYB provider | `KybVerificationPort` (stubbed by default) | Pluggable: Sumsub, Onfido, Dow Jones |
+| Kafka | Firefly EDA (publisher-type: KAFKA) | Topic `domain-layer` — events emitted by `@StepEvent` on each saga step |
+
+### Downstream — services that consume this microservice
+
+Downstream services use the `domain-customer-kyc-kyb-sdk` module to call this service over HTTP. Kafka consumers subscribed to the `domain-layer` topic can react to the following events without a direct HTTP dependency:
+
+| Event | Trigger |
+|-------|---------|
+| `kyb.case.created` | A new KYB compliance case was opened |
+| `kyb.documents.submitted` | Corporate documents were uploaded to a case |
+| `kyb.ubos.registered` | UBOs were registered against a case |
+| `kyb.verification.requested` | An external verification was triggered |
+| `kyb.verification.completed` | The verification outcome was recorded and the case status updated |
+
+Noted candidate downstream consumers include `exp-onboarding` and `core-lending`.
+
+---
+
+## Configuration
+
+All properties are defined in `domain-customer-kyc-kyb-web/src/main/resources/application.yaml`.
+
+### Server
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `server.address` | `localhost` (env: `SERVER_ADDRESS`) | Bind address |
+| `server.port` | `8081` (env: `SERVER_PORT`) | HTTP listen port |
+| `server.shutdown` | `graceful` | Graceful shutdown mode |
+| `spring.threads.virtual.enabled` | `true` | Enables Java virtual threads |
+
+### Firefly CQRS
+
+| Property | Value | Description |
+|----------|-------|-------------|
+| `firefly.cqrs.enabled` | `true` | Activates the CQRS framework |
+| `firefly.cqrs.command.timeout` | `30s` | Default command bus timeout |
+| `firefly.cqrs.command.metrics-enabled` | `true` | Micrometer metrics for commands |
+| `firefly.cqrs.command.tracing-enabled` | `true` | Distributed tracing for commands |
+| `firefly.cqrs.query.timeout` | `15s` | Default query bus timeout |
+| `firefly.cqrs.query.caching-enabled` | `true` | Query result caching |
+| `firefly.cqrs.query.cache-ttl` | `15m` | Default query cache TTL |
+| `firefly.saga.performance.enabled` | `true` | Enables saga performance metrics |
+| `firefly.eda.enabled` | `true` | Enables event-driven architecture support |
+| `firefly.eda.default-publisher-type` | `KAFKA` | Default event publisher |
+| `firefly.eda.publishers.kafka.default.default-topic` | `domain-layer` | Kafka topic for domain events |
+| `firefly.eda.publishers.kafka.default.bootstrap-servers` | `localhost:9092` | Kafka broker address |
+| `firefly.stepevents.enabled` | `true` | Enables `@StepEvent` publishing on saga steps |
+
+### Downstream client — `core-common-kycb-mgmt`
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `api-configuration.core-platform.kycb-mgmt.base-path` | `http://localhost:8092` | Base URL of the kycb-mgmt service |
+| `api-configuration.core-platform.kycb-mgmt.timeout` | `10s` | HTTP client timeout |
+
+### OpenAPI / Swagger
+
+| Property | Value | Description |
+|----------|-------|-------------|
+| `springdoc.api-docs.enabled` | `true` | Enables OpenAPI spec generation |
+| `springdoc.api-docs.path` | `/v3/api-docs` | OpenAPI JSON path |
+| `springdoc.swagger-ui.path` | `/swagger-ui.html` | Swagger UI path |
+| `springdoc.packages-to-scan` | `com.firefly.domain.kyc.kyb.web.controller` | Controllers scanned for API docs |
+| `springdoc.paths-to-match` | `/api/**` | Paths included in the OpenAPI spec |
+
+> **Production profile (`pro`):** OpenAPI docs and Swagger UI are disabled. Root log level is `WARN`; `com.firefly` packages log at `INFO`.
+
+> **Dev and pre profiles:** Both `com.firefly` and root loggers produce `DEBUG` and `INFO` output respectively.
+
+### Actuator
+
+Exposes the `health`, `info`, and `prometheus` management endpoints. Health details are shown only when authorized. Liveness and readiness state probes are enabled for Kubernetes-style health checks.
+
+---
+
+## Running Locally
+
+**Prerequisites:** Java 25, Maven 3.9+, a running `core-common-kycb-mgmt` instance on port 8092 (or override `api-configuration.core-platform.kycb-mgmt.base-path`), and a Kafka broker on `localhost:9092`.
 
 ```bash
-mvn test
+mvn clean install -DskipTests
+cd /Users/casanchez/Desktop/firefly-oss/domain-customer-kyc-kyb
+mvn spring-boot:run -pl domain-customer-kyc-kyb-web
 ```
 
-Dependencies for testing include `spring-boot-starter-test` and `reactor-test`.
+Server port: **8081** (default; override with the `SERVER_PORT` environment variable)
+
+The Swagger UI is available at `http://localhost:8081/swagger-ui.html` and the OpenAPI spec at `http://localhost:8081/v3/api-docs`.
+
+To activate the `dev` profile for `DEBUG`-level logging:
+
+```bash
+mvn spring-boot:run -pl domain-customer-kyc-kyb-web -Dspring-boot.run.profiles=dev
+```
+
+To disable the KYB verification stub and use a real provider, set:
+
+```bash
+-Dintegration.kyb-verification.provider=<sumsub|onfido|dow-jones>
+```
 
 ---
 
-## Monitoring
+## Testing
 
-### Actuator Endpoints
+```bash
+mvn clean verify
+```
 
-The web module includes `spring-boot-starter-actuator` with the following expected endpoints:
+Unit tests are located under `domain-customer-kyc-kyb-core/src/test/java`:
 
-| Endpoint | Purpose |
-|----------|---------|
-| `/actuator/health` | Application health check with liveness/readiness probes |
-| `/actuator/info` | Build information |
-| `/actuator/prometheus` | Prometheus-compatible metrics |
+| Test class | Coverage |
+|------------|---------|
+| `CreateKybCaseHandlerTest` | `CreateKybCaseHandler` — case creation and error paths |
+| `SubmitCorporateDocumentsHandlerTest` | `SubmitCorporateDocumentsHandler` — concurrent document upload |
+| `RegisterUbosHandlerTest` | `RegisterUbosHandler` — concurrent UBO registration |
+| `RequestKybVerificationHandlerTest` | `RequestKybVerificationHandler` — provider delegation and result persistence |
+| `GetKybCaseHandlerTest` | `GetKybCaseHandler` — case retrieval |
+| `GetKybResultHandlerTest` | `GetKybResultHandler` — verification result retrieval |
+| `KybWorkflowSagaTest` | `KybWorkflowSaga` — full DAG execution including parallel steps and compensation paths |
 
-### Metrics
+Web-layer tests are located under `domain-customer-kyc-kyb-web/src/test/java`:
 
-Prometheus metrics are exported via `micrometer-registry-prometheus`. Scrape the `/actuator/prometheus` endpoint for time-series data.
-
-### API Documentation
-
-Interactive API documentation is available at:
-
-- **Swagger UI**: `/swagger-ui.html`
-- **OpenAPI JSON**: `/v3/api-docs`
+| Test class | Coverage |
+|------------|---------|
+| `KybControllerTest` | `KybController` — HTTP request/response mapping for all KYB endpoints |
+| `OpenApiGenApplication` | Generates the OpenAPI specification artifact used to build the SDK |

@@ -5,18 +5,18 @@ import reactor.core.publisher.Mono;
 import java.util.UUID;
 
 /**
- * Port for external KYB verification providers.
- * <p>
- * Abstracts the actual third-party provider used for business entity verification.
- * </p>
+ * Port for external KYB (Know Your Business) verification providers.
+ * Implementations may delegate to Sumsub, Onfido, Dow Jones, or a stub.
+ *
+ * <p>Use {@link StubKybVerificationAdapter} for local development and testing.</p>
  */
 public interface KybVerificationPort {
 
     /**
-     * Initiates a KYB verification for the given compliance case.
+     * Submits a KYB verification request for the given case identifier.
      *
-     * @param caseId the compliance case identifier
-     * @return a {@link KybVerificationResult} with the verification outcome
+     * @param caseId the KYB compliance case identifier
+     * @return a {@link Mono} emitting the verification result
      */
     Mono<KybVerificationResult> verify(UUID caseId);
 }

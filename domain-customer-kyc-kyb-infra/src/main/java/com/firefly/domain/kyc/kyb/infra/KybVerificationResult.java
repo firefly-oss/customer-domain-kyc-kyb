@@ -1,33 +1,46 @@
 package com.firefly.domain.kyc.kyb.infra;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 /**
- * Result of a KYB verification request from an external provider.
+ * Result returned by a {@link KybVerificationPort} implementation.
+ * Use the static factory methods for the two most common outcomes.
  */
 @Data
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
 public class KybVerificationResult {
 
-    /** Verification status: VERIFIED, REJECTED, PENDING. */
+    /** Verification outcome. Typically {@code "VERIFIED"} or {@code "REJECTED"}. */
     private String status;
 
-    /** Optional reason for rejection. */
+    /** Human-readable rejection reason. Populated only when {@link #status} is {@code "REJECTED"}. */
     private String rejectionReason;
 
-    /** Risk score from provider (0-100). */
+    /** Provider risk score (0–100). May be null if the provider does not supply a score. */
     private Integer riskScore;
 
+    /**
+     * Creates a successful verification result with status {@code "VERIFIED"}.
+     *
+     * @return a verified result
+     */
     public static KybVerificationResult verified() {
-        return KybVerificationResult.builder().status("VERIFIED").build();
+        return KybVerificationResult.builder()
+                .status("VERIFIED")
+                .build();
     }
 
+    /**
+     * Creates a rejected verification result with the given reason.
+     *
+     * @param reason human-readable rejection reason
+     * @return a rejected result
+     */
     public static KybVerificationResult rejected(String reason) {
-        return KybVerificationResult.builder().status("REJECTED").rejectionReason(reason).build();
+        return KybVerificationResult.builder()
+                .status("REJECTED")
+                .rejectionReason(reason)
+                .build();
     }
 }

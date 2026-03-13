@@ -9,21 +9,30 @@ import java.time.Duration;
 import java.util.UUID;
 
 /**
- * Stub adapter for KYB verification that simulates a positive verification
- * with a 200ms delay.
- * <p>
- * TODO: Replace stub with real KYB provider (e.g., Sumsub, Onfido, Dow Jones)
- * </p>
+ * Stub implementation of {@link KybVerificationPort} for local development and testing.
+ * Always returns {@code VERIFIED} after a simulated 200 ms network delay.
+ *
+ * <p>Active by default unless {@code integration.kyb-verification.provider} is set to a
+ * real provider value (e.g., {@code sumsub}, {@code onfido}, {@code dow-jones}).</p>
+ *
+ * <p>TODO: Replace stub with real KYB provider (e.g., Sumsub, Onfido, Dow Jones)</p>
  */
-@Component
-@ConditionalOnProperty(name = "integration.kyb-verification.provider", havingValue = "stub", matchIfMissing = true)
 @Slf4j
+@Component
+@ConditionalOnProperty(
+        name = "integration.kyb-verification.provider",
+        havingValue = "stub",
+        matchIfMissing = true
+)
 public class StubKybVerificationAdapter implements KybVerificationPort {
 
     @Override
     public Mono<KybVerificationResult> verify(UUID caseId) {
-        log.info("Stub KYB verification for caseId={}", caseId);
-        return Mono.just(KybVerificationResult.verified())
-                .delayElement(Duration.ofMillis(200));
+        log.info("StubKybVerificationAdapter: simulating KYB verification for caseId={}", caseId);
+        return Mono.delay(Duration.ofMillis(200))
+                .map(tick -> KybVerificationResult.verified())
+                .doOnSuccess(result -> log.info(
+                        "StubKybVerificationAdapter: KYB verification complete for caseId={}, status={}",
+                        caseId, result.getStatus()));
     }
 }

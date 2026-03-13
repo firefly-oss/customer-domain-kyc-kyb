@@ -1,69 +1,81 @@
 package com.firefly.domain.kyc.kyb.infra;
 
-import com.firefly.core.kycb.sdk.api.*;
+import com.firefly.core.kycb.sdk.api.ComplianceCasesApi;
+import com.firefly.core.kycb.sdk.api.CorporateDocumentsApi;
+import com.firefly.core.kycb.sdk.api.KybVerificationApi;
+import com.firefly.core.kycb.sdk.api.KycVerificationApi;
+import com.firefly.core.kycb.sdk.api.KycVerificationDocumentsApi;
+import com.firefly.core.kycb.sdk.api.UboManagementApi;
+import com.firefly.core.kycb.sdk.api.VerificationDocumentsApi;
 import com.firefly.core.kycb.sdk.invoker.ApiClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
 /**
- * Factory that wires the core-common-kycb-mgmt SDK.
- * <p>
- * Provides Spring beans for all KYC/KYB core APIs used by the domain service.
- * </p>
+ * Creates reactive API client beans for the core-common-kycb-mgmt downstream service.
+ * All beans share a single {@link ApiClient} configured from {@link KycbClientConfigurationProperties}.
  */
 @Component
 public class KycbClientFactory {
 
     private final ApiClient apiClient;
 
-    /**
-     * Creates the client factory and configures the {@link ApiClient}
-     * with the base path from application properties.
-     *
-     * @param properties the KYCB management connection properties
-     */
-    public KycbClientFactory(KycbClientConfigurationProperties properties) {
+    public KycbClientFactory(KycbClientConfigurationProperties props) {
         this.apiClient = new ApiClient();
-        this.apiClient.setBasePath(properties.getBasePath());
+        this.apiClient.setBasePath(props.getBasePath());
     }
 
-    /** Creates the compliance cases API bean. */
-    @Bean
-    public ComplianceCasesApi complianceCasesApi() {
-        return new ComplianceCasesApi(apiClient);
-    }
-
-    /** Creates the corporate documents API bean. */
-    @Bean
-    public CorporateDocumentsApi corporateDocumentsApi() {
-        return new CorporateDocumentsApi(apiClient);
-    }
-
-    /** Creates the UBO management API bean. */
-    @Bean
-    public UboManagementApi uboManagementApi() {
-        return new UboManagementApi(apiClient);
-    }
-
-    /** Creates the KYB verification API bean. */
-    @Bean
-    public KybVerificationApi kybVerificationApi() {
-        return new KybVerificationApi(apiClient);
-    }
-
-    /** Creates the KYC verification API bean. */
+    /**
+     * API for KYC verification lifecycle (open case, verify, fail, expire, renew).
+     */
     @Bean
     public KycVerificationApi kycVerificationApi() {
         return new KycVerificationApi(apiClient);
     }
 
-    /** Creates the KYC verification documents API bean. */
+    /**
+     * API for KYC identity document uploads and management.
+     */
     @Bean
     public KycVerificationDocumentsApi kycVerificationDocumentsApi() {
         return new KycVerificationDocumentsApi(apiClient);
     }
 
-    /** Creates the verification documents API bean. */
+    /**
+     * API for KYB (Know Your Business) verification lifecycle.
+     */
+    @Bean
+    public KybVerificationApi kybVerificationApi() {
+        return new KybVerificationApi(apiClient);
+    }
+
+    /**
+     * API for KYB corporate document uploads and management.
+     */
+    @Bean
+    public CorporateDocumentsApi corporateDocumentsApi() {
+        return new CorporateDocumentsApi(apiClient);
+    }
+
+    /**
+     * API for compliance case management (shared by KYC and KYB flows).
+     */
+    @Bean
+    public ComplianceCasesApi complianceCasesApi() {
+        return new ComplianceCasesApi(apiClient);
+    }
+
+    /**
+     * API for UBO (Ultimate Beneficial Owner) management in KYB flows.
+     */
+    @Bean
+    public UboManagementApi uboManagementApi() {
+        return new UboManagementApi(apiClient);
+    }
+
+    /**
+     * API for generic verification document management.
+     */
     @Bean
     public VerificationDocumentsApi verificationDocumentsApi() {
         return new VerificationDocumentsApi(apiClient);

@@ -1,10 +1,23 @@
 package com.firefly.domain.kyc.kyb.web.controller;
 
-import com.firefly.domain.kyc.kyb.core.kyb.commands.AttachEvidenceCommand;
-import com.firefly.domain.kyc.kyb.core.kyb.services.KybService;
-import com.firefly.domain.kyc.kyb.interfaces.dtos.kyb.KybCaseResponse;
-import com.firefly.domain.kyc.kyb.interfaces.dtos.kyb.KybResultResponse;
-import org.fireflyframework.orchestration.saga.engine.SagaResult;
+import com.firefly.core.kycb.sdk.model.ComplianceCaseDTO;
+import com.firefly.core.kycb.sdk.model.KybVerificationDTO;
+import com.firefly.domain.kyc.kyb.core.kyb.commands.CreateKybCaseCommand;
+import com.firefly.domain.kyc.kyb.core.kyb.commands.DocumentData;
+import com.firefly.domain.kyc.kyb.core.kyb.commands.RegisterUbosCommand;
+import com.firefly.domain.kyc.kyb.core.kyb.commands.RequestKybVerificationCommand;
+import com.firefly.domain.kyc.kyb.core.kyb.commands.SubmissionResult;
+import com.firefly.domain.kyc.kyb.core.kyb.commands.SubmitCorporateDocumentsCommand;
+import com.firefly.domain.kyc.kyb.core.kyb.commands.UboData;
+import com.firefly.domain.kyc.kyb.core.kyb.queries.GetKybCaseQuery;
+import com.firefly.domain.kyc.kyb.core.kyb.queries.GetKybResultQuery;
+import com.firefly.domain.kyc.kyb.interfaces.dtos.CreateKybCaseRequest;
+import com.firefly.domain.kyc.kyb.interfaces.dtos.KybCaseResponse;
+import com.firefly.domain.kyc.kyb.interfaces.dtos.KybResultResponse;
+import com.firefly.domain.kyc.kyb.interfaces.dtos.RegisterUbosRequest;
+import com.firefly.domain.kyc.kyb.interfaces.dtos.SubmitCorporateDocumentsRequest;
+import org.fireflyframework.cqrs.command.CommandBus;
+import org.fireflyframework.cqrs.query.QueryBus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,122 +27,254 @@ import org.springframework.http.HttpStatus;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class KybControllerTest {
 
     @Mock
-    private KybService kybService;
+    private CommandBus commandBus;
 
     @Mock
-    private SagaResult sagaResult;
+    private QueryBus queryBus;
 
     private KybController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new KybController(kybService);
+        controller = new KybController(commandBus, queryBus);
     }
 
     @Test
-    void startKyb_returns201() {
-        when(kybService.startKyb()).thenReturn(Mono.just(sagaResult));
-        when(sagaResult.isSuccess()).thenReturn(true);
+    void createCase_shouldReturn201_withCaseId() {
+        UUID caseId = UUID.randomUUID();
+        UUID partyId = UUID.randomUUID();
+        UUID tenantId = UUID.randomUUID();
 
-        StepVerifier.create(controller.startKyb())
+        when(commandBus.send(any(CreateKybCaseCommand.class))).thenReturn(Mono.just(caseId));
+
+        CreateKybCaseRequest request = CreateKybCaseRequest.builder()
+                .partyId(partyId)
+                .businessName("Acme Corp S.L.")
+                .registrationNumber("B-12345678")
+                .tenantId(tenantId)
+                .build();
+
+        StepVerifier.create(controller.createCase(request))
                 .assertNext(response -> {
                     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
                     assertThat(response.getBody()).isNotNull();
-                    assertThat(response.getBody().getStatus()).isEqualTo("SUCCESS");
+                    assertThat(response.getBody().getCaseId()).isEqualTo(caseId);
                 })
                 .verifyComplete();
+
+        verify(commandBus).send(any(CreateKybCaseCommand.class));
     }
 
     @Test
-    void attachEvidence_returns200() {
+    void createCase_shouldPropagateCommandBusError() {
+        UUID partyId = UUID.randomUUID();
+
+        when(commandBus.send(any(CreateKybCaseCommand.class)))
+                .thenReturn(Mono.error(new RuntimeException("Core service unavailable")));
+
+        CreateKybCaseRequest request = CreateKybCaseRequest.builder()
+                .partyId(partyId)
+                .businessName("Acme Corp")
+                .registrationNumber("B-001")
+                .tenantId(UUID.randomUUID())
+                .build();
+
+        StepVerifier.create(controller.createCase(request))
+                .expectError(RuntimeException.class)
+                .verify();
+    }
+
+    @Test
+    void getCase_shouldReturn200_withMappedCaseResponse() {
         UUID caseId = UUID.randomUUID();
-        AttachEvidenceCommand command = new AttachEvidenceCommand();
-        command.setDocumentType("STATUTES");
+        UUID partyId = UUID.randomUUID();
 
-        when(kybService.attachEvidence(eq(caseId), any())).thenReturn(Mono.just(sagaResult));
-        when(sagaResult.isSuccess()).thenReturn(true);
+        ComplianceCaseDTO dto = new ComplianceCaseDTO(null, null, caseId);
+        dto.partyId(partyId);
+        dto.caseType("KYB");
+        dto.caseStatus("OPEN");
+        dto.casePriority("MEDIUM");
+        dto.caseReference("B-12345678");
+        dto.caseSummary("Acme Corp KYB case");
+        dto.assignedTo("SYSTEM");
+        dto.dueDate(LocalDateTime.now().plusDays(30));
 
-        StepVerifier.create(controller.attachEvidence(caseId, command))
+        when(queryBus.query(any(GetKybCaseQuery.class))).thenReturn(Mono.just(dto));
+
+        StepVerifier.create(controller.getCase(caseId))
                 .assertNext(response -> {
                     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-                    assertThat(response.getBody().getMessage()).isEqualTo("Evidence attached");
+                    KybCaseResponse body = response.getBody();
+                    assertThat(body).isNotNull();
+                    assertThat(body.getCaseId()).isEqualTo(caseId);
+                    assertThat(body.getPartyId()).isEqualTo(partyId);
+                    assertThat(body.getCaseStatus()).isEqualTo("OPEN");
+                    assertThat(body.getCaseType()).isEqualTo("KYB");
                 })
                 .verifyComplete();
+
+        verify(queryBus).query(any(GetKybCaseQuery.class));
     }
 
     @Test
-    void verifyKyb_returnsResultResponse() {
+    void submitCorporateDocuments_shouldReturn200_withSubmissionResult() {
         UUID caseId = UUID.randomUUID();
+        UUID partyId = UUID.randomUUID();
+        List<UUID> documentIds = List.of(UUID.randomUUID(), UUID.randomUUID());
+        SubmissionResult result = new SubmissionResult(documentIds);
 
-        when(kybService.verifyKyb(caseId)).thenReturn(Mono.just(sagaResult));
-        when(sagaResult.isSuccess()).thenReturn(true);
+        when(commandBus.send(any(SubmitCorporateDocumentsCommand.class))).thenReturn(Mono.just(result));
 
-        StepVerifier.create(controller.verifyKyb(caseId))
+        SubmitCorporateDocumentsRequest request = SubmitCorporateDocumentsRequest.builder()
+                .partyId(partyId)
+                .documents(List.of(
+                        DocumentData.builder()
+                                .documentType("DEED_OF_INCORPORATION")
+                                .documentReference("DOC-001")
+                                .documentSystemId("SYS-001")
+                                .build()))
+                .build();
+
+        StepVerifier.create(controller.submitCorporateDocuments(caseId, request))
+                .assertNext(response -> {
+                    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                    assertThat(response.getBody()).isNotNull();
+                    assertThat(response.getBody().ids()).hasSize(2);
+                })
+                .verifyComplete();
+
+        verify(commandBus).send(any(SubmitCorporateDocumentsCommand.class));
+    }
+
+    @Test
+    void registerUbos_shouldReturn200_withSubmissionResult() {
+        UUID caseId = UUID.randomUUID();
+        UUID partyId = UUID.randomUUID();
+        List<UUID> uboIds = List.of(UUID.randomUUID());
+        SubmissionResult result = new SubmissionResult(uboIds);
+
+        when(commandBus.send(any(RegisterUbosCommand.class))).thenReturn(Mono.just(result));
+
+        RegisterUbosRequest request = RegisterUbosRequest.builder()
+                .partyId(partyId)
+                .ubos(List.of(
+                        UboData.builder()
+                                .naturalPersonId(UUID.randomUUID())
+                                .ownershipPercentage(new BigDecimal("51.00"))
+                                .ownershipType("DIRECT")
+                                .build()))
+                .build();
+
+        StepVerifier.create(controller.registerUbos(caseId, request))
+                .assertNext(response -> {
+                    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                    assertThat(response.getBody()).isNotNull();
+                    assertThat(response.getBody().ids()).hasSize(1);
+                })
+                .verifyComplete();
+
+        verify(commandBus).send(any(RegisterUbosCommand.class));
+    }
+
+    @Test
+    void requestVerification_shouldReturn200_withKybResultResponse() {
+        UUID caseId = UUID.randomUUID();
+        UUID partyId = UUID.randomUUID();
+        UUID verificationId = UUID.randomUUID();
+
+        KybVerificationDTO dto = new KybVerificationDTO(null, null, verificationId);
+        dto.partyId(partyId);
+        dto.verificationStatus("VERIFIED");
+        dto.riskScore(25);
+        dto.riskLevel("LOW");
+        dto.verificationDate(LocalDateTime.now());
+        dto.mercantileRegistryVerified(true);
+        dto.deedOfIncorporationVerified(true);
+        dto.businessStructureVerified(true);
+        dto.uboVerified(true);
+        dto.taxIdVerified(true);
+        dto.operatingLicenseVerified(false);
+
+        when(commandBus.send(any(RequestKybVerificationCommand.class))).thenReturn(Mono.just(dto));
+
+        StepVerifier.create(controller.requestVerification(caseId, partyId))
                 .assertNext(response -> {
                     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
                     KybResultResponse body = response.getBody();
                     assertThat(body).isNotNull();
-                    assertThat(body.getCaseId()).isEqualTo(caseId);
-                    assertThat(body.isSuccess()).isTrue();
+                    assertThat(body.getVerificationId()).isEqualTo(verificationId);
+                    assertThat(body.getPartyId()).isEqualTo(partyId);
+                    assertThat(body.getVerificationStatus()).isEqualTo("VERIFIED");
+                    assertThat(body.getRiskScore()).isEqualTo(25);
+                    assertThat(body.getRiskLevel()).isEqualTo("LOW");
+                    assertThat(body.getUboVerified()).isTrue();
                 })
                 .verifyComplete();
+
+        verify(commandBus).send(any(RequestKybVerificationCommand.class));
     }
 
     @Test
-    void failKyb_returns200() {
+    void getResult_shouldReturn200_withKybResultResponse() {
         UUID caseId = UUID.randomUUID();
-        when(kybService.failKyb(caseId)).thenReturn(Mono.just(sagaResult));
-        when(sagaResult.isSuccess()).thenReturn(true);
+        UUID partyId = UUID.randomUUID();
+        UUID verificationId = UUID.randomUUID();
 
-        StepVerifier.create(controller.failKyb(caseId))
+        KybVerificationDTO dto = new KybVerificationDTO(null, null, verificationId);
+        dto.partyId(partyId);
+        dto.verificationStatus("VERIFIED");
+        dto.riskScore(10);
+        dto.riskLevel("LOW");
+        dto.verificationDate(LocalDateTime.now());
+        dto.nextReviewDate(LocalDateTime.now().plusYears(1));
+        dto.mercantileRegistryVerified(true);
+        dto.deedOfIncorporationVerified(true);
+        dto.businessStructureVerified(true);
+        dto.uboVerified(true);
+        dto.taxIdVerified(true);
+        dto.operatingLicenseVerified(true);
+
+        when(queryBus.query(any(GetKybResultQuery.class))).thenReturn(Mono.just(dto));
+
+        StepVerifier.create(controller.getResult(caseId, partyId, verificationId))
                 .assertNext(response -> {
                     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-                    assertThat(response.getBody().getMessage()).isEqualTo("KYB case failed");
+                    KybResultResponse body = response.getBody();
+                    assertThat(body).isNotNull();
+                    assertThat(body.getVerificationId()).isEqualTo(verificationId);
+                    assertThat(body.getVerificationStatus()).isEqualTo("VERIFIED");
+                    assertThat(body.getNextReviewDate()).isNotNull();
                 })
                 .verifyComplete();
+
+        verify(queryBus).query(any(GetKybResultQuery.class));
     }
 
     @Test
-    void markDocsComplete_returns200() {
+    void getResult_shouldPropagateQueryBusError() {
         UUID caseId = UUID.randomUUID();
-        when(kybService.markDocsComplete(caseId)).thenReturn(Mono.just(sagaResult));
-        when(sagaResult.isSuccess()).thenReturn(true);
+        UUID partyId = UUID.randomUUID();
+        UUID verificationId = UUID.randomUUID();
 
-        StepVerifier.create(controller.markDocsComplete(caseId))
-                .assertNext(response -> assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK))
-                .verifyComplete();
-    }
+        when(queryBus.query(any(GetKybResultQuery.class)))
+                .thenReturn(Mono.error(new RuntimeException("Verification not found")));
 
-    @Test
-    void expireKyb_returns200() {
-        UUID caseId = UUID.randomUUID();
-        when(kybService.expireKyb(caseId)).thenReturn(Mono.just(sagaResult));
-        when(sagaResult.isSuccess()).thenReturn(true);
-
-        StepVerifier.create(controller.expireKyb(caseId))
-                .assertNext(response -> assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK))
-                .verifyComplete();
-    }
-
-    @Test
-    void renewKyb_returns200() {
-        UUID caseId = UUID.randomUUID();
-        when(kybService.renewKyb(caseId)).thenReturn(Mono.just(sagaResult));
-        when(sagaResult.isSuccess()).thenReturn(true);
-
-        StepVerifier.create(controller.renewKyb(caseId))
-                .assertNext(response -> assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK))
-                .verifyComplete();
+        StepVerifier.create(controller.getResult(caseId, partyId, verificationId))
+                .expectError(RuntimeException.class)
+                .verify();
     }
 }

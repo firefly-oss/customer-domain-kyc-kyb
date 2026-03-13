@@ -1,20 +1,18 @@
-package com.firefly.domain.kyc.kyb.core.kyb.commands;
+package com.firefly.domain.kyc.kyb.interfaces.dtos;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Data;
-import org.fireflyframework.cqrs.command.Command;
 
 import java.util.UUID;
 
 /**
- * Opens a new KYB compliance case in {@code core-common-kycb-mgmt}.
- * Returns the created {@code complianceCaseId}.
+ * Request body for creating a new KYB compliance case for a legal entity.
  */
 @Data
 @Builder
-public class CreateKybCaseCommand implements Command<UUID> {
+public class CreateKybCaseRequest {
 
     @NotNull(message = "Party ID is required")
     private final UUID partyId;

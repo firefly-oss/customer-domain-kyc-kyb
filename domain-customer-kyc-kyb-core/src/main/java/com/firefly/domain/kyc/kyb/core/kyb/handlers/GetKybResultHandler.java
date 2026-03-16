@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.fireflyframework.cqrs.annotations.QueryHandlerComponent;
 import org.fireflyframework.cqrs.query.QueryHandler;
 import reactor.core.publisher.Mono;
+import java.util.UUID;
 
 /**
  * Retrieves a KYB verification result by party ID and verification ID.
@@ -25,6 +26,6 @@ public class GetKybResultHandler extends QueryHandler<GetKybResultQuery, KybVeri
     protected Mono<KybVerificationDTO> doHandle(GetKybResultQuery query) {
         log.info("Fetching KYB verification result: partyId={}, verificationId={}",
                 query.getPartyId(), query.getVerificationId());
-        return kybVerificationApi.getKybVerification(query.getPartyId(), query.getVerificationId());
+        return kybVerificationApi.getKybVerification(query.getPartyId(), query.getVerificationId(), UUID.randomUUID().toString());
     }
 }

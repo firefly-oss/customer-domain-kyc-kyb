@@ -3,7 +3,6 @@ package com.firefly.domain.kyc.kyb.core.kyb.workflows;
 import com.firefly.core.kycb.sdk.model.KybVerificationDTO;
 import com.firefly.domain.kyc.kyb.core.kyb.commands.RecordKybVerificationCommand;
 import com.firefly.domain.kyc.kyb.core.kyb.commands.RequestKybVerificationCommand;
-import com.firefly.domain.kyc.kyb.infra.KybVerificationResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.fireflyframework.cqrs.command.CommandBus;
@@ -42,13 +41,17 @@ public class VerifyKybSaga {
      * Requests verification from the external KYB provider.
      *
      * @param caseId the compliance case identifier
+     * @param partyId the party identifier
      * @return the verification result from the external provider
      */
     @SagaStep(id = STEP_REQUEST_VERIFICATION, compensate = "cancelVerification",
             retry = 2, backoffMs = 2000, timeoutMs = 30000)
-    public Mono<KybVerificationResult> requestVerification(@Input UUID caseId) {
+    public Mono<KybVerificationDTO> requestVerification(@Input UUID caseId, @Input UUID partyId) {
         log.info("Requesting KYB verification: caseId={}", caseId);
-        return commandBus.send(new RequestKybVerificationCommand(caseId));
+        return commandBus.send(RequestKybVerificationCommand.builder()
+                .caseId(caseId)
+                .partyId(partyId)
+                .build());
     }
 
     /**
@@ -62,15 +65,15 @@ public class VerifyKybSaga {
     @SetVariable(CTX_VERIFICATION_STATUS)
     public Mono<KybVerificationDTO> evaluateResult(
             @Input UUID caseId,
-            @FromStep(STEP_REQUEST_VERIFICATION) KybVerificationResult result) {
-        log.info("Evaluating KYB verification result: caseId={}, status={}", caseId, result.getStatus());
-        return commandBus.send(new RecordKybVerificationCommand(caseId, result.getStatus()));
+            @FromStep(STEP_REQUEST_VERIFICATION) KybVerificationDTO result) {
+        log.info("Evaluating KYB verification result: caseId={}, status={}", caseId, result.getVerificationStatus());
+        return commandBus.send(new RecordKybVerificationCommand(caseId, result.getVerificationStatus()));
     }
 
     /**
      * Compensation: cancels the pending verification.
      */
-    public Mono<Void> cancelVerification(KybVerificationResult result) {
+    public Mono<Void> cancelVerification(KybVerificationDTO result) {
         log.warn("Compensating: cancelling KYB verification");
         return Mono.empty();
     }

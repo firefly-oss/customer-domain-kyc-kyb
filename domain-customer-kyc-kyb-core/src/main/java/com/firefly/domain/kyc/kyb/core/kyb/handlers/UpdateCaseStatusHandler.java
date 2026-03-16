@@ -25,7 +25,6 @@ public class UpdateCaseStatusHandler extends CommandHandler<UpdateCaseStatusComm
     protected Mono<ComplianceCaseDTO> doHandle(UpdateCaseStatusCommand cmd) {
         return complianceCasesApi.updateComplianceCase(
                 cmd.getCaseId(),
-                new ComplianceCaseDTO().caseStatus(cmd.getNewStatus()),
-                UUID.randomUUID().toString());
+                new ComplianceCaseDTO().caseStatus(cmd.getNewStatus()), UUID.randomUUID().toString());
     }
 }

@@ -39,7 +39,7 @@ class UpdateVerificationStatusHandlerTest {
                 .build();
 
         KycVerificationDTO response = new KycVerificationDTO(null, null, cmd.getCaseId());
-        when(kycVerificationApi.updateKycVerification(any(), any(), any(), anyString()))
+        when(kycVerificationApi.updateKycVerification(any(), any(), any(), any()))
                 .thenReturn(Mono.just(response));
 
         StepVerifier.create(handler.doHandle(cmd))
@@ -54,7 +54,7 @@ class UpdateVerificationStatusHandlerTest {
                 .verificationLevel("STANDARD")
                 .build();
 
-        when(kycVerificationApi.updateKycVerification(any(), any(), any(), anyString()))
+        when(kycVerificationApi.updateKycVerification(any(), any(), any(), any()))
                 .thenReturn(Mono.error(new RuntimeException("Update failed")));
 
         StepVerifier.create(handler.doHandle(cmd))

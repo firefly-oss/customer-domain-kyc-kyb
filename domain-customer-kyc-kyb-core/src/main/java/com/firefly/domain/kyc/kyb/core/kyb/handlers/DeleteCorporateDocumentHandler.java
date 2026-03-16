@@ -5,6 +5,7 @@ import com.firefly.domain.kyc.kyb.core.kyb.commands.DeleteCorporateDocumentComma
 import org.fireflyframework.cqrs.annotations.CommandHandlerComponent;
 import org.fireflyframework.cqrs.command.CommandHandler;
 import reactor.core.publisher.Mono;
+import java.util.UUID;
 
 /**
  * Handler that deletes a corporate document via the core SDK (compensation).
@@ -20,6 +21,6 @@ public class DeleteCorporateDocumentHandler extends CommandHandler<DeleteCorpora
 
     @Override
     protected Mono<Void> doHandle(DeleteCorporateDocumentCommand cmd) {
-        return corporateDocumentsApi.deleteCorporateDocument(cmd.getDocumentId()).then();
+        return corporateDocumentsApi.deleteCorporateDocument(cmd.getDocumentId(), UUID.randomUUID().toString()).then();
     }
 }

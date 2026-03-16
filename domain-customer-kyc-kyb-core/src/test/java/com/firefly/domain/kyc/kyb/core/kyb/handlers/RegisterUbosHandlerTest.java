@@ -43,7 +43,7 @@ class RegisterUbosHandlerTest {
         UUID uboId1 = UUID.randomUUID();
         UUID uboId2 = UUID.randomUUID();
 
-        when(uboManagementApi.addUbo(eq(partyId), any(UboDTO.class)))
+        when(uboManagementApi.addUbo(eq(partyId), any(UboDTO.class), any()))
                 .thenReturn(Mono.just(new UboDTO(null, null, uboId1)))
                 .thenReturn(Mono.just(new UboDTO(null, null, uboId2)));
 
@@ -71,13 +71,13 @@ class RegisterUbosHandlerTest {
                 })
                 .verifyComplete();
 
-        verify(uboManagementApi, times(2)).addUbo(eq(partyId), any(UboDTO.class));
+        verify(uboManagementApi, times(2)).addUbo(eq(partyId), any(UboDTO.class), any());
     }
 
     @Test
     void shouldPropagateErrorWhenUboRegistrationFails() {
         UUID partyId = UUID.randomUUID();
-        when(uboManagementApi.addUbo(any(), any(UboDTO.class)))
+        when(uboManagementApi.addUbo(any(), any(UboDTO.class), any()))
                 .thenReturn(Mono.error(new RuntimeException("UBO registration failed")));
 
         UboData ubo = UboData.builder()

@@ -14,6 +14,8 @@ import reactor.test.StepVerifier;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -37,7 +39,7 @@ class GetKybResultHandlerTest {
 
         KybVerificationDTO expectedDto = new KybVerificationDTO(null, null, verificationId);
         expectedDto.verificationStatus("VERIFIED");
-        when(kybVerificationApi.getKybVerification(partyId, verificationId))
+        when(kybVerificationApi.getKybVerification(eq(partyId), eq(verificationId), any()))
                 .thenReturn(Mono.just(expectedDto));
 
         GetKybResultQuery query = GetKybResultQuery.builder()
@@ -52,7 +54,7 @@ class GetKybResultHandlerTest {
                 })
                 .verifyComplete();
 
-        verify(kybVerificationApi).getKybVerification(partyId, verificationId);
+        verify(kybVerificationApi).getKybVerification(eq(partyId), eq(verificationId), any());
     }
 
     @Test
@@ -60,7 +62,7 @@ class GetKybResultHandlerTest {
         UUID partyId = UUID.randomUUID();
         UUID verificationId = UUID.randomUUID();
 
-        when(kybVerificationApi.getKybVerification(partyId, verificationId))
+        when(kybVerificationApi.getKybVerification(eq(partyId), eq(verificationId), any()))
                 .thenReturn(Mono.error(new RuntimeException("Verification not found")));
 
         GetKybResultQuery query = GetKybResultQuery.builder()

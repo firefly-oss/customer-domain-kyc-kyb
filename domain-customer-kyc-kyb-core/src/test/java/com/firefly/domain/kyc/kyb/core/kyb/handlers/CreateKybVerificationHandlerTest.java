@@ -38,7 +38,7 @@ class CreateKybVerificationHandlerTest {
                 .build();
 
         KybVerificationDTO response = new KybVerificationDTO(null, null, expectedId);
-        when(kybVerificationApi.createKybVerification(any(), any(), anyString()))
+        when(kybVerificationApi.createKybVerification(any(), any(), any()))
                 .thenReturn(Mono.just(response));
 
         StepVerifier.create(handler.doHandle(cmd))
@@ -52,7 +52,7 @@ class CreateKybVerificationHandlerTest {
                 .partyId(UUID.randomUUID())
                 .build();
 
-        when(kybVerificationApi.createKybVerification(any(), any(), anyString()))
+        when(kybVerificationApi.createKybVerification(any(), any(), any()))
                 .thenReturn(Mono.error(new RuntimeException("API unavailable")));
 
         StepVerifier.create(handler.doHandle(cmd))

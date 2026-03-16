@@ -41,7 +41,7 @@ class UploadKycDocumentHandlerTest {
                 .build();
 
         VerificationDocumentDTO response = new VerificationDocumentDTO(null, null, expectedDocId);
-        when(kycVerificationDocumentsApi.addVerificationDocument(any(), any(), any(), anyString()))
+        when(kycVerificationDocumentsApi.addVerificationDocument(any(), any(), any(), any()))
                 .thenReturn(Mono.just(response));
 
         StepVerifier.create(handler.doHandle(cmd))
@@ -58,7 +58,7 @@ class UploadKycDocumentHandlerTest {
                 .fingerprint("abc123hash")
                 .build();
 
-        when(kycVerificationDocumentsApi.addVerificationDocument(any(), any(), any(), anyString()))
+        when(kycVerificationDocumentsApi.addVerificationDocument(any(), any(), any(), any()))
                 .thenReturn(Mono.error(new RuntimeException("Upload failed")));
 
         StepVerifier.create(handler.doHandle(cmd))

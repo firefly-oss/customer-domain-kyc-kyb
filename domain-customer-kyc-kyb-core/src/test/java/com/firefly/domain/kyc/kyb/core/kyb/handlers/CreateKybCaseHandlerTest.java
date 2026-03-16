@@ -36,7 +36,7 @@ class CreateKybCaseHandlerTest {
         UUID partyId = UUID.randomUUID();
 
         ComplianceCaseDTO responseDto = new ComplianceCaseDTO(null, null, expectedCaseId);
-        when(complianceCasesApi.createComplianceCase(any(ComplianceCaseDTO.class)))
+        when(complianceCasesApi.createComplianceCase(any(ComplianceCaseDTO.class), any()))
                 .thenReturn(Mono.just(responseDto));
 
         CreateKybCaseCommand cmd = CreateKybCaseCommand.builder()
@@ -50,14 +50,14 @@ class CreateKybCaseHandlerTest {
                 .expectNext(expectedCaseId)
                 .verifyComplete();
 
-        verify(complianceCasesApi).createComplianceCase(any(ComplianceCaseDTO.class));
+        verify(complianceCasesApi).createComplianceCase(any(ComplianceCaseDTO.class), any());
     }
 
     @Test
     void shouldFailWhenApiReturnsNullCaseId() {
         UUID partyId = UUID.randomUUID();
         ComplianceCaseDTO responseDto = new ComplianceCaseDTO(null, null, null);
-        when(complianceCasesApi.createComplianceCase(any(ComplianceCaseDTO.class)))
+        when(complianceCasesApi.createComplianceCase(any(ComplianceCaseDTO.class), any()))
                 .thenReturn(Mono.just(responseDto));
 
         CreateKybCaseCommand cmd = CreateKybCaseCommand.builder()
@@ -75,7 +75,7 @@ class CreateKybCaseHandlerTest {
     @Test
     void shouldPropagateApiError() {
         UUID partyId = UUID.randomUUID();
-        when(complianceCasesApi.createComplianceCase(any(ComplianceCaseDTO.class)))
+        when(complianceCasesApi.createComplianceCase(any(ComplianceCaseDTO.class), any()))
                 .thenReturn(Mono.error(new RuntimeException("Core service unavailable")));
 
         CreateKybCaseCommand cmd = CreateKybCaseCommand.builder()

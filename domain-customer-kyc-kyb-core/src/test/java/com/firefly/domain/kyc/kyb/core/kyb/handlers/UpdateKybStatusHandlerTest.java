@@ -38,7 +38,7 @@ class UpdateKybStatusHandlerTest {
                 .build();
 
         KybVerificationDTO response = new KybVerificationDTO(null, null, cmd.getCaseId());
-        when(kybVerificationApi.updateKybVerification(any(), any(), any(), anyString()))
+        when(kybVerificationApi.updateKybVerification(any(), any(), any(), any()))
                 .thenReturn(Mono.just(response));
 
         StepVerifier.create(handler.doHandle(cmd))
@@ -52,7 +52,7 @@ class UpdateKybStatusHandlerTest {
                 .partyId(UUID.randomUUID())
                 .build();
 
-        when(kybVerificationApi.updateKybVerification(any(), any(), any(), anyString()))
+        when(kybVerificationApi.updateKybVerification(any(), any(), any(), any()))
                 .thenReturn(Mono.error(new RuntimeException("Update failed")));
 
         StepVerifier.create(handler.doHandle(cmd))

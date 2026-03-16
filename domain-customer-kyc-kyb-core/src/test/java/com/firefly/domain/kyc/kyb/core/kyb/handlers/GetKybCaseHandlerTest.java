@@ -14,6 +14,8 @@ import reactor.test.StepVerifier;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -36,7 +38,7 @@ class GetKybCaseHandlerTest {
         ComplianceCaseDTO expectedDto = new ComplianceCaseDTO(null, null, caseId);
         expectedDto.caseType("KYB");
 
-        when(complianceCasesApi.getComplianceCase(caseId)).thenReturn(Mono.just(expectedDto));
+        when(complianceCasesApi.getComplianceCase(eq(caseId), any())).thenReturn(Mono.just(expectedDto));
 
         GetKybCaseQuery query = GetKybCaseQuery.builder().caseId(caseId).build();
 
@@ -44,13 +46,13 @@ class GetKybCaseHandlerTest {
                 .assertNext(dto -> assertThat(dto.getComplianceCaseId()).isEqualTo(caseId))
                 .verifyComplete();
 
-        verify(complianceCasesApi).getComplianceCase(caseId);
+        verify(complianceCasesApi).getComplianceCase(eq(caseId), any());
     }
 
     @Test
     void shouldPropagateErrorWhenCaseNotFound() {
         UUID caseId = UUID.randomUUID();
-        when(complianceCasesApi.getComplianceCase(caseId))
+        when(complianceCasesApi.getComplianceCase(eq(caseId), any()))
                 .thenReturn(Mono.error(new RuntimeException("Case not found")));
 
         GetKybCaseQuery query = GetKybCaseQuery.builder().caseId(caseId).build();

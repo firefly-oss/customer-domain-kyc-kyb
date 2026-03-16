@@ -1,10 +1,8 @@
 package com.firefly.domain.kyc.kyb.web.controllers;
 
-import com.firefly.domain.kyc.kyb.core.kyb.commands.AttachKybEvidenceCommand;
-import com.firefly.domain.kyc.kyb.core.kyb.commands.FailKybCommand;
-import com.firefly.domain.kyc.kyb.core.kyb.commands.OpenKybCaseCommand;
-import com.firefly.domain.kyc.kyb.core.kyb.commands.VerifyKybCommand;
+import com.firefly.domain.kyc.kyb.core.kyb.commands.AttachEvidenceCommand;
 import com.firefly.domain.kyc.kyb.core.kyb.services.KybService;
+import com.firefly.domain.kyc.kyb.core.kyb.workflows.KybWorkflowInput;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -13,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
+import java.util.Collections;
 import java.util.UUID;
 
 /**
@@ -34,13 +33,13 @@ public class KybController {
     /**
      * Opens a new KYB process for an organization.
      *
-     * @param command the command containing the partyId
+     * @param input the workflow input containing party and business details
      * @return an empty 200 response on success
      */
     @PostMapping("/cases")
     @Operation(summary = "Start KYB", description = "Open a KYB process for an organization")
-    public Mono<ResponseEntity<Object>> startKyb(@Valid @RequestBody OpenKybCaseCommand command) {
-        return kybService.startKyb(command)
+    public Mono<ResponseEntity<Object>> startKyb(@Valid @RequestBody KybWorkflowInput input) {
+        return kybService.startKyb(input)
                 .map(result -> ResponseEntity.ok().build());
     }
 
@@ -54,7 +53,7 @@ public class KybController {
     @PostMapping("/cases/{caseId}/documents")
     @Operation(summary = "Attach Evidence", description = "Attach statutes, registries, shareholder records, POA")
     public Mono<ResponseEntity<Object>> attachEvidence(@PathVariable UUID caseId,
-                                                       @Valid @RequestBody AttachKybEvidenceCommand command) {
+                                                       @Valid @RequestBody AttachEvidenceCommand command) {
         return kybService.attachEvidence(caseId, command)
                 .map(result -> ResponseEntity.ok().build());
     }
@@ -76,14 +75,12 @@ public class KybController {
      * Verifies the entity, requiring UBOs to be validated, and sets expiry.
      *
      * @param caseId  the unique identifier of the KYB case
-     * @param command the command containing verification details
      * @return an empty 200 response on success
      */
     @PostMapping("/cases/{caseId}/verify")
     @Operation(summary = "Verify KYB", description = "Verify entity (requires UBOs validated) and set expiry")
-    public Mono<ResponseEntity<Object>> verifyKyb(@PathVariable UUID caseId,
-                                                  @Valid @RequestBody VerifyKybCommand command) {
-        return kybService.verifyKyb(caseId, command)
+    public Mono<ResponseEntity<Object>> verifyKyb(@PathVariable UUID caseId) {
+        return kybService.verifyKyb(caseId)
                 .map(result -> ResponseEntity.ok().build());
     }
 
@@ -91,14 +88,12 @@ public class KybController {
      * Rejects the KYB case due to opaque structure, sanctions, or insufficient documentation.
      *
      * @param caseId  the unique identifier of the KYB case
-     * @param command the command containing the rejection reason
      * @return an empty 200 response on success
      */
     @PostMapping("/cases/{caseId}/fail")
     @Operation(summary = "Fail KYB", description = "Reject KYB (opaque structure/sanctions/insufficient docs)")
-    public Mono<ResponseEntity<Object>> failKyb(@PathVariable UUID caseId,
-                                                @Valid @RequestBody FailKybCommand command) {
-        return kybService.failKyb(caseId, command)
+    public Mono<ResponseEntity<Object>> failKyb(@PathVariable UUID caseId) {
+        return kybService.failKyb(caseId)
                 .map(result -> ResponseEntity.ok().build());
     }
 
@@ -126,31 +121,5 @@ public class KybController {
     public Mono<ResponseEntity<Object>> renewKyb(@PathVariable UUID caseId) {
         return kybService.renewKyb(caseId)
                 .map(result -> ResponseEntity.ok().build());
-    }
-
-    /**
-     * Retrieves KYB case details by identifier.
-     *
-     * @param caseId the unique identifier of the KYB case
-     * @return the KYB case details
-     */
-    @GetMapping("/cases/{caseId}")
-    @Operation(summary = "Get KYB Case", description = "Retrieve KYB case details by ID")
-    public Mono<ResponseEntity<Object>> getCase(@PathVariable UUID caseId) {
-        return kybService.getCase(caseId)
-                .map(ResponseEntity::ok);
-    }
-
-    /**
-     * Retrieves the KYB verification result for a case.
-     *
-     * @param caseId the unique identifier of the KYB case
-     * @return the KYB verification result
-     */
-    @GetMapping("/cases/{caseId}/result")
-    @Operation(summary = "Get KYB Result", description = "Retrieve KYB verification result for a case")
-    public Mono<ResponseEntity<Object>> getCaseResult(@PathVariable UUID caseId) {
-        return kybService.getCaseResult(caseId)
-                .map(ResponseEntity::ok);
     }
 }

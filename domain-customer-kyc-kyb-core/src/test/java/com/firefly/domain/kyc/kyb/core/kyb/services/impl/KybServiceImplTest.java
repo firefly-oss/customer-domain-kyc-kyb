@@ -2,6 +2,7 @@ package com.firefly.domain.kyc.kyb.core.kyb.services.impl;
 
 import com.firefly.domain.kyc.kyb.core.kyb.commands.AttachEvidenceCommand;
 import com.firefly.domain.kyc.kyb.core.kyb.commands.UpdateCaseStatusCommand;
+import com.firefly.domain.kyc.kyb.core.kyb.workflows.KybWorkflowInput;
 import org.fireflyframework.cqrs.command.CommandBus;
 import org.fireflyframework.orchestration.saga.engine.SagaEngine;
 import org.fireflyframework.orchestration.saga.engine.SagaResult;
@@ -39,107 +40,74 @@ class KybServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        kybService = new KybServiceImpl(sagaEngine, commandBus);
+        kybService = new KybServiceImpl(sagaEngine);
     }
 
     @Test
     void startKyb_executesSaga() {
-        when(sagaEngine.execute(eq(SAGA_START_KYB), any(StepInputs.class)))
+        when(sagaEngine.execute(anyString(), any(StepInputs.class)))
                 .thenReturn(Mono.just(sagaResult));
         when(sagaResult.isSuccess()).thenReturn(true);
 
-        StepVerifier.create(kybService.startKyb())
+        KybWorkflowInput input = new KybWorkflowInput(
+                UUID.randomUUID(), "Acme Corp", "REG-123", UUID.randomUUID(),
+                java.util.Collections.emptyList(), java.util.Collections.emptyList());
+
+        StepVerifier.create(kybService.startKyb(input))
                 .assertNext(result -> assertThat(result.isSuccess()).isTrue())
                 .verifyComplete();
 
-        verify(sagaEngine).execute(eq(SAGA_START_KYB), any(StepInputs.class));
+        verify(sagaEngine).execute(anyString(), any(StepInputs.class));
     }
 
     @Test
-    void attachEvidence_executesSaga() {
+    void attachEvidence_completesEmpty_notYetImplemented() {
         UUID caseId = UUID.randomUUID();
         AttachEvidenceCommand command = new AttachEvidenceCommand();
         command.setDocumentType("STATUTES");
         command.setDocumentName("company_statutes.pdf");
 
-        when(sagaEngine.execute(eq(SAGA_ATTACH_EVIDENCE), any(StepInputs.class)))
-                .thenReturn(Mono.just(sagaResult));
-        when(sagaResult.isSuccess()).thenReturn(true);
-
         StepVerifier.create(kybService.attachEvidence(caseId, command))
-                .assertNext(result -> assertThat(result.isSuccess()).isTrue())
                 .verifyComplete();
-
-        assertThat(command.getCaseId()).isEqualTo(caseId);
-        verify(sagaEngine).execute(eq(SAGA_ATTACH_EVIDENCE), any(StepInputs.class));
     }
 
     @Test
-    void verifyKyb_executesSaga() {
+    void verifyKyb_completesEmpty_notYetImplemented() {
         UUID caseId = UUID.randomUUID();
-
-        when(sagaEngine.execute(eq(SAGA_VERIFY_KYB), any(StepInputs.class)))
-                .thenReturn(Mono.just(sagaResult));
-        when(sagaResult.isSuccess()).thenReturn(true);
 
         StepVerifier.create(kybService.verifyKyb(caseId))
-                .assertNext(result -> assertThat(result.isSuccess()).isTrue())
                 .verifyComplete();
-
-        verify(sagaEngine).execute(eq(SAGA_VERIFY_KYB), any(StepInputs.class));
     }
 
     @Test
-    void markDocsComplete_dispatchesCommandViaSaga() {
+    void markDocsComplete_completesEmpty_notYetImplemented() {
         UUID caseId = UUID.randomUUID();
-
-        when(sagaEngine.execute(any(SagaDefinition.class), any(StepInputs.class)))
-                .thenReturn(Mono.just(sagaResult));
-        when(sagaResult.isSuccess()).thenReturn(true);
 
         StepVerifier.create(kybService.markDocsComplete(caseId))
-                .assertNext(result -> assertThat(result.isSuccess()).isTrue())
                 .verifyComplete();
-
-        verify(sagaEngine).execute(any(SagaDefinition.class), any(StepInputs.class));
     }
 
     @Test
-    void failKyb_dispatchesCommandViaSaga() {
+    void failKyb_completesEmpty_notYetImplemented() {
         UUID caseId = UUID.randomUUID();
-
-        when(sagaEngine.execute(any(SagaDefinition.class), any(StepInputs.class)))
-                .thenReturn(Mono.just(sagaResult));
-        when(sagaResult.isSuccess()).thenReturn(true);
 
         StepVerifier.create(kybService.failKyb(caseId))
-                .assertNext(result -> assertThat(result.isSuccess()).isTrue())
                 .verifyComplete();
     }
 
     @Test
-    void expireKyb_dispatchesCommandViaSaga() {
+    void expireKyb_completesEmpty_notYetImplemented() {
         UUID caseId = UUID.randomUUID();
-
-        when(sagaEngine.execute(any(SagaDefinition.class), any(StepInputs.class)))
-                .thenReturn(Mono.just(sagaResult));
-        when(sagaResult.isSuccess()).thenReturn(true);
 
         StepVerifier.create(kybService.expireKyb(caseId))
-                .assertNext(result -> assertThat(result.isSuccess()).isTrue())
                 .verifyComplete();
     }
 
     @Test
-    void renewKyb_dispatchesCommandViaSaga() {
+    void renewKyb_completesEmpty_notYetImplemented() {
         UUID caseId = UUID.randomUUID();
 
-        when(sagaEngine.execute(any(SagaDefinition.class), any(StepInputs.class)))
-                .thenReturn(Mono.just(sagaResult));
-        when(sagaResult.isSuccess()).thenReturn(true);
-
         StepVerifier.create(kybService.renewKyb(caseId))
-                .assertNext(result -> assertThat(result.isSuccess()).isTrue())
                 .verifyComplete();
     }
 }

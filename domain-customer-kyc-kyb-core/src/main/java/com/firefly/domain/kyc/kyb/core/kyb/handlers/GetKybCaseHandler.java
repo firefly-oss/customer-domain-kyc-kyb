@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.fireflyframework.cqrs.annotations.QueryHandlerComponent;
 import org.fireflyframework.cqrs.query.QueryHandler;
 import reactor.core.publisher.Mono;
+import java.util.UUID;
 
 /**
  * Retrieves a KYB compliance case by its unique identifier.
@@ -23,6 +24,6 @@ public class GetKybCaseHandler extends QueryHandler<GetKybCaseQuery, ComplianceC
     @Override
     protected Mono<ComplianceCaseDTO> doHandle(GetKybCaseQuery query) {
         log.info("Fetching KYB case: caseId={}", query.getCaseId());
-        return complianceCasesApi.getComplianceCase(query.getCaseId());
+        return complianceCasesApi.getComplianceCase(query.getCaseId(), UUID.randomUUID().toString());
     }
 }

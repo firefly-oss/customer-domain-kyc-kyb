@@ -235,11 +235,11 @@ public class KybWorkflowSaga {
                 ? CASE_STATUS_VERIFIED
                 : CASE_STATUS_REJECTED;
 
-        return complianceCasesApi.getComplianceCase(caseId)
+        return complianceCasesApi.getComplianceCase(caseId, UUID.randomUUID().toString())
                 .flatMap(existing -> {
                     existing.caseStatus(caseStatus);
                     return complianceCasesApi.updateComplianceCase(
-                            caseId, existing);
+                            caseId, existing, UUID.randomUUID().toString());
                 })
                 .doOnSuccess(updated -> log.info(
                         "KYB workflow complete: caseId={}, partyId={}, verificationId={}, finalStatus={}",
@@ -258,7 +258,7 @@ public class KybWorkflowSaga {
         UUID id = (UUID) ctx.getVariable(CTX_CASE_ID);
         if (id == null) return Mono.empty();
         log.info("Compensating createKybCase: deleting caseId={}", id);
-        return complianceCasesApi.deleteComplianceCase(id);
+        return complianceCasesApi.deleteComplianceCase(id, UUID.randomUUID().toString());
     }
 
     /**
@@ -271,7 +271,7 @@ public class KybWorkflowSaga {
         if (ids == null || ids.isEmpty()) return Mono.empty();
         log.info("Compensating submitCorporateDocuments: deleting {} document(s)", ids.size());
         return Flux.fromIterable(ids)
-                .flatMap(corporateDocumentsApi::deleteCorporateDocument)
+                .flatMap(docId -> corporateDocumentsApi.deleteCorporateDocument(docId, UUID.randomUUID().toString()))
                 .then();
     }
 
@@ -285,7 +285,7 @@ public class KybWorkflowSaga {
         if (ids == null || ids.isEmpty() || partyId == null) return Mono.empty();
         log.info("Compensating registerUbos: removing {} UBO(s) for partyId={}", ids.size(), partyId);
         return Flux.fromIterable(ids)
-                .flatMap(uboId -> uboManagementApi.deleteUbo(partyId, uboId))
+                .flatMap(uboId -> uboManagementApi.deleteUbo(partyId, uboId, UUID.randomUUID().toString()))
                 .then();
     }
 
@@ -297,6 +297,6 @@ public class KybWorkflowSaga {
         UUID vId = (UUID) ctx.getVariable(CTX_VERIFICATION_ID);
         if (vId == null || partyId == null) return Mono.empty();
         log.info("Compensating requestVerification: deleting verificationId={}", vId);
-        return kybVerificationApi.deleteKybVerification(partyId, vId);
+        return kybVerificationApi.deleteKybVerification(partyId, vId, UUID.randomUUID().toString());
     }
 }

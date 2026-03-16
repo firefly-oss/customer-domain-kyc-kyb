@@ -32,7 +32,7 @@ public class CreateKybCaseHandler extends CommandHandler<CreateKybCaseCommand, U
     protected Mono<UUID> doHandle(CreateKybCaseCommand cmd) {
         log.info("Creating KYB compliance case for partyId={}", cmd.getPartyId());
 
-        ComplianceCaseDTO dto = new ComplianceCaseDTO(null, null, null);
+        ComplianceCaseDTO dto = new ComplianceCaseDTO();
         dto.partyId(cmd.getPartyId());
         dto.caseType(KybWorkflowConstants.CASE_TYPE_KYB);
         dto.caseStatus(KybWorkflowConstants.CASE_STATUS_OPEN);
@@ -44,7 +44,7 @@ public class CreateKybCaseHandler extends CommandHandler<CreateKybCaseCommand, U
         dto.reportToSepblacRequired(false);
 
         return complianceCasesApi
-                .createComplianceCase(dto)
+                .createComplianceCase(dto, UUID.randomUUID().toString())
                 .map(result -> {
                     UUID caseId = Objects.requireNonNull(result.getComplianceCaseId(),
                             "Core service returned null complianceCaseId");

@@ -46,7 +46,7 @@ public class RegisterUbosHandler extends CommandHandler<RegisterUbosCommand, Sub
         dto.partyId(partyId);
 
         return uboManagementApi
-                .addUbo(partyId, dto)
+                .addUbo(partyId, dto, UUID.randomUUID().toString())
                 .map(result -> Objects.requireNonNull(result.getUboId(),
                         "Core service returned null uboId"));
     }

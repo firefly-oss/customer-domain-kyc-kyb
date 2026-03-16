@@ -5,6 +5,7 @@ import com.firefly.domain.kyc.kyb.core.kyb.commands.DeleteKybCaseCommand;
 import org.fireflyframework.cqrs.annotations.CommandHandlerComponent;
 import org.fireflyframework.cqrs.command.CommandHandler;
 import reactor.core.publisher.Mono;
+import java.util.UUID;
 
 /**
  * Handler that deletes (cancels) a KYB compliance case via the core SDK.
@@ -20,6 +21,6 @@ public class DeleteKybCaseHandler extends CommandHandler<DeleteKybCaseCommand, V
 
     @Override
     protected Mono<Void> doHandle(DeleteKybCaseCommand cmd) {
-        return complianceCasesApi.deleteComplianceCase(cmd.getCaseId()).then();
+        return complianceCasesApi.deleteComplianceCase(cmd.getCaseId(), UUID.randomUUID().toString()).then();
     }
 }

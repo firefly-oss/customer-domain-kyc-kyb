@@ -1,6 +1,5 @@
 package com.firefly.domain.kyc.kyb.core.kyb.workflows;
 
-import com.firefly.core.kycb.sdk.model.ComplianceCaseDTO;
 import com.firefly.domain.kyc.kyb.core.kyb.commands.CreateKybCaseCommand;
 import com.firefly.domain.kyc.kyb.core.kyb.commands.DeleteKybCaseCommand;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +14,8 @@ import org.fireflyframework.orchestration.saga.annotation.SagaStep;
 import org.fireflyframework.orchestration.saga.engine.SagaResult;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
+
+import java.util.UUID;
 
 import static com.firefly.domain.kyc.kyb.core.kyb.constants.KybConstants.*;
 
@@ -40,25 +41,23 @@ public class StartKybSaga {
      */
     @SagaStep(id = STEP_CREATE_CASE, compensate = "cancelCase", retry = 2, backoffMs = 1000)
     @SetVariable(CTX_CASE_ID)
-    public Mono<ComplianceCaseDTO> createCase() {
+    public Mono<UUID> createCase() {
         var cmd = CreateKybCaseCommand.builder().build();
-        cmd.caseType("KYB");
-        cmd.caseStatus("OPEN");
 
         log.info("Creating KYB compliance case");
-        return commandBus.<ComplianceCaseDTO>send(cmd)
-                .doOnNext(created -> log.info("KYB case created: caseId={}", created.getComplianceCaseId()));
+        return commandBus.<UUID>send(cmd)
+                .doOnNext(created -> log.info("KYB case created: caseId={}", created));
     }
 
     /**
      * Compensation: cancels the created compliance case.
      */
-    public Mono<Void> cancelCase(ComplianceCaseDTO createdCase) {
-        if (createdCase == null || createdCase.getComplianceCaseId() == null) {
+    public Mono<Void> cancelCase(UUID createdCaseId) {
+        if (createdCaseId == null) {
             return Mono.empty();
         }
-        log.warn("Compensating: cancelling KYB case: caseId={}", createdCase.getComplianceCaseId());
-        return commandBus.send(new DeleteKybCaseCommand(createdCase.getComplianceCaseId()));
+        log.warn("Compensating: cancelling KYB case: caseId={}", createdCaseId);
+        return commandBus.send(new DeleteKybCaseCommand(createdCaseId));
     }
 
     @OnSagaComplete

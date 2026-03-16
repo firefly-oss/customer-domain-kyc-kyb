@@ -44,7 +44,7 @@ class SubmitCorporateDocumentsHandlerTest {
         UUID docId2 = UUID.randomUUID();
         UUID partyId = UUID.randomUUID();
 
-        when(corporateDocumentsApi.addCorporateDocument(any(CorporateDocumentDTO.class)))
+        when(corporateDocumentsApi.addCorporateDocument(any(CorporateDocumentDTO.class), any()))
                 .thenReturn(Mono.just(new CorporateDocumentDTO(null, null, docId1)))
                 .thenReturn(Mono.just(new CorporateDocumentDTO(null, null, docId2)));
 
@@ -73,13 +73,13 @@ class SubmitCorporateDocumentsHandlerTest {
                 .verifyComplete();
 
         verify(corporateDocumentsApi, times(2))
-                .addCorporateDocument(any(CorporateDocumentDTO.class));
+                .addCorporateDocument(any(CorporateDocumentDTO.class), any());
     }
 
     @Test
     void shouldPropagateErrorWhenOneDocumentFails() {
         UUID partyId = UUID.randomUUID();
-        when(corporateDocumentsApi.addCorporateDocument(any(CorporateDocumentDTO.class)))
+        when(corporateDocumentsApi.addCorporateDocument(any(CorporateDocumentDTO.class), any()))
                 .thenReturn(Mono.error(new RuntimeException("Upload failed")));
 
         DocumentData doc = DocumentData.builder()

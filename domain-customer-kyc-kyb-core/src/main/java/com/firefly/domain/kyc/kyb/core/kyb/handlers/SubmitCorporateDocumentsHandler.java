@@ -46,7 +46,7 @@ public class SubmitCorporateDocumentsHandler extends CommandHandler<SubmitCorpor
         dto.partyId(partyId);
 
         return corporateDocumentsApi
-                .addCorporateDocument(dto)
+                .addCorporateDocument(dto, UUID.randomUUID().toString())
                 .map(result -> Objects.requireNonNull(result.getCorporateDocumentId(),
                         "Core service returned null corporateDocumentId"));
     }

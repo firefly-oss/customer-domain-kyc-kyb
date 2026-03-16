@@ -52,7 +52,7 @@ public class RequestKybVerificationHandler extends CommandHandler<RequestKybVeri
                 ? VERIFICATION_STATUS_VERIFIED
                 : VERIFICATION_STATUS_REJECTED;
 
-        KybVerificationDTO dto = new KybVerificationDTO(null, null, null);
+        KybVerificationDTO dto = new KybVerificationDTO();
         dto.partyId(cmd.getPartyId());
         dto.verificationStatus(status);
         dto.verificationDate(LocalDateTime.now());
@@ -71,6 +71,6 @@ public class RequestKybVerificationHandler extends CommandHandler<RequestKybVeri
         }
 
         return kybVerificationApi.createKybVerification(
-                cmd.getPartyId(), dto);
+                cmd.getPartyId(), dto, UUID.randomUUID().toString());
     }
 }

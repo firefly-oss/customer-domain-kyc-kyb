@@ -49,7 +49,7 @@ class RequestKybVerificationHandlerTest {
 
         KybVerificationDTO persistedDto = new KybVerificationDTO(null, null, verificationId);
         persistedDto.verificationStatus("VERIFIED");
-        when(kybVerificationApi.createKybVerification(eq(partyId), any(KybVerificationDTO.class)))
+        when(kybVerificationApi.createKybVerification(eq(partyId), any(KybVerificationDTO.class), any()))
                 .thenReturn(Mono.just(persistedDto));
 
         RequestKybVerificationCommand cmd = RequestKybVerificationCommand.builder()
@@ -65,7 +65,7 @@ class RequestKybVerificationHandlerTest {
                 .verifyComplete();
 
         verify(verificationPort).verify(caseId);
-        verify(kybVerificationApi).createKybVerification(eq(partyId), any(KybVerificationDTO.class));
+        verify(kybVerificationApi).createKybVerification(eq(partyId), any(KybVerificationDTO.class), any());
     }
 
     @Test
@@ -79,7 +79,7 @@ class RequestKybVerificationHandlerTest {
 
         KybVerificationDTO persistedDto = new KybVerificationDTO(null, null, verificationId);
         persistedDto.verificationStatus("REJECTED");
-        when(kybVerificationApi.createKybVerification(eq(partyId), any(KybVerificationDTO.class)))
+        when(kybVerificationApi.createKybVerification(eq(partyId), any(KybVerificationDTO.class), any()))
                 .thenReturn(Mono.just(persistedDto));
 
         RequestKybVerificationCommand cmd = RequestKybVerificationCommand.builder()

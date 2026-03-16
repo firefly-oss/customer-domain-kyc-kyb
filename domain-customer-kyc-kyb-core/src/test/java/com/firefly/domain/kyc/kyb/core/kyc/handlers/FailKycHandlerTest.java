@@ -39,7 +39,7 @@ class FailKycHandlerTest {
                 .build();
 
         KycVerificationDTO response = new KycVerificationDTO(null, null, cmd.getCaseId());
-        when(kycVerificationApi.updateKycVerification(any(), any(), any(), anyString()))
+        when(kycVerificationApi.updateKycVerification(any(), any(), any(), any()))
                 .thenReturn(Mono.just(response));
 
         StepVerifier.create(handler.doHandle(cmd))
@@ -54,7 +54,7 @@ class FailKycHandlerTest {
                 .reason("Fraudulent documents detected")
                 .build();
 
-        when(kycVerificationApi.updateKycVerification(any(), any(), any(), anyString()))
+        when(kycVerificationApi.updateKycVerification(any(), any(), any(), any()))
                 .thenReturn(Mono.error(new RuntimeException("API error")));
 
         StepVerifier.create(handler.doHandle(cmd))
